@@ -19,10 +19,10 @@ def LOG(*args, **kwargs) -> None:
         print(*args)
 
 
-def get_data() -> (object, object):
+def get_data(prune:bool) -> (object, object):
     '''gets the dataset from ../dataset/dataset.arff'''
     LOG("Beginning to get data")
-    if USE_PRUNE:
+    if prune:
         dataset, meta = arff.loadarff('../dataset/pruned.arff')
     else:
         dataset, meta = arff.loadarff('../dataset/dataset.arff')
@@ -35,12 +35,16 @@ def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     loss = torch.sum(diff_squared) / predicted.shape[0]
     return loss
 
-def train(data: torch.tensor, targetIndex: int) -> torch.tensor:
-    '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
+def split(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.tensor]:
     y = data[:, targetIndex].reshape((data.shape[0], 1))
     X_first = data[:,:targetIndex]
     X_second = data[:, targetIndex+1:]
     X = torch.hstack([X_first, X_second])
+    return X, y
+
+def train(data: torch.tensor, targetIndex: int) -> torch.tensor:
+    '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
+    X, y = split(data, targetIndex)
     start = time.time()
     w_global = torch.linalg.pinv(X).matmul(y)
     end = time.time()
@@ -58,7 +62,7 @@ def main() -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
-    dataset, meta = get_data()
+    dataset, meta = get_data(USE_PRUNE)
     end = time.time()
     LOG("Time for global optimization:", end-start)
     data = np.array(dataset.tolist(), dtype=np.float64)
