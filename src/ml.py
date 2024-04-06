@@ -27,7 +27,9 @@ def get_data(prune:bool) -> (object, object):
     else:
         dataset, meta = arff.loadarff('../dataset/dataset.arff')
     LOG("Stopped getting data")
-    return dataset, meta
+    data = np.array(dataset.tolist(), dtype=np.float64)
+    data = torch.from_numpy(data).to(DEVICE)
+    return data, meta
 
 def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     '''Returns the Mean Squared Error between the predicted tensor value and actual'''
@@ -62,11 +64,9 @@ def main() -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
-    dataset, meta = get_data(USE_PRUNE)
+    data, meta = get_data(USE_PRUNE)
     end = time.time()
     LOG("Time for global optimization:", end-start)
-    data = np.array(dataset.tolist(), dtype=np.float64)
-    data = torch.from_numpy(data).to(DEVICE)
     data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
 

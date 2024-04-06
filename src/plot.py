@@ -25,10 +25,8 @@ def extrapolate_time(X:torch.tensor, name:list)->torch.tensor:
 
 def main():
     # Create a figure containing the plot of each feaure against the target
-    dataset, meta = get_data(USE_PRUNE)
+    data, meta = get_data(USE_PRUNE)
     names = meta.names()
-    data = np.array(dataset.tolist(), dtype=np.float64)
-    data = torch.from_numpy(data).to(DEVICE)
     target_index = names.index(TARGET)
     X, y = split(data, target_index)
     y = y.squeeze()
