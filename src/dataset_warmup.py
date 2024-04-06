@@ -4,24 +4,39 @@ import ray
 from scipy.io import arff
 from time import sleep
 
-# @ray.remote
-# class DataStreamer:
-#     def __init__(self, file_path):
-#         self.dataset, self.meta = arff.loadarff(file_path)
+@ray.remote
+class DataStore:
+    def __init__(self):
+        self.data = None
 
-#     def get_data(self):
-#         return self.dataset, self.meta
+    def set_data(self, ndarray):
+        self.data = ndarray
+
+    def get_data(self):
+        return self.data
 
 if __name__ == "__main__":
     ray.init()  # Initialize Ray
 
     dataset, meta = arff.loadarff("../dataset/pruned.arff")
 
-    ray.put(dataset)
+    # Create an instance of the DataStore actor
+    data_store = DataStore.remote()
 
-    ray.put(meta)
+    # Generate some random data (replace this with your own ndarray creation)
+    data_array = dataset
 
-    print("DataStreamer is ready and serving data.")
+    # Set the data in the DataStore actor
+    ray.get(data_store.set_data.remote(data_array))
 
-    while True:
-        sleep(10)
+    # Define a function to retrieve the data from the DataStore actor
+    @ray.remote
+    def retrieve_data(data_store_actor):
+        return ray.get(data_store_actor.get_data.remote())
+
+    # Spawn a process to retrieve the data
+    result = ray.get(retrieve_data.remote(data_store))
+
+    print(result, data_store)
+
+

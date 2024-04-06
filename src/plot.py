@@ -1,4 +1,4 @@
-from ml import get_data, split
+from ml import get_data, splitXY
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -28,7 +28,7 @@ def main():
     data, meta = get_data(USE_PRUNE)
     names = meta.names()
     target_index = names.index(TARGET)
-    X, y = split(data, target_index)
+    X, y = splitXY(data, target_index)
     y = y.squeeze()
     X = extrapolate_time(X, names)
     #return

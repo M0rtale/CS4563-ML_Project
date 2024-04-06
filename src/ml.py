@@ -37,7 +37,7 @@ def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     loss = torch.sum(diff_squared) / predicted.shape[0]
     return loss
 
-def split(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.tensor]:
+def splitXY(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.tensor]:
     y = data[:, targetIndex].reshape((data.shape[0], 1))
     X_first = data[:,:targetIndex]
     X_second = data[:, targetIndex+1:]
@@ -46,7 +46,7 @@ def split(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.tens
 
 def train(data: torch.tensor, targetIndex: int) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    X, y = split(data, targetIndex)
+    X, y = splitXY(data, targetIndex)
     start = time.time()
     w_global = torch.linalg.pinv(X).matmul(y)
     end = time.time()
