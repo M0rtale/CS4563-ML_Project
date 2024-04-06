@@ -27,7 +27,7 @@ if __name__ == "__main__":
     data_array = dataset
 
     # Set the data in the DataStore actor
-    ray.get(data_store.set_data.remote(data_array))
+    ray.get(data_store.set_data.options(name="some_name").remote(data_array))
 
     # Define a function to retrieve the data from the DataStore actor
     @ray.remote
@@ -38,5 +38,9 @@ if __name__ == "__main__":
     result = ray.get(retrieve_data.remote(data_store))
 
     print(result, data_store)
+
+    while True:
+        sleep(10)
+        pass
 
 
