@@ -4,30 +4,36 @@ import matplotlib.pyplot as plt
 import torch
 import math
 
-USE_PRUNE = True
+USE_PRUNE = False
 TARGET = "MM256"
 DEVICE = 'cpu'
 
-def extrapolate_time(X:torch.tensor, name:tuple)->torch.tensor:
+def extrapolate_time(X:torch.tensor, name:list)->torch.tensor:
+    # Extrapolate time related attribute to one attribute that is in seconds.
     year_index = name.index("year")
     month_index = name.index("month")
-    X_first = X[:,:year_index]
-    X_second = X[:, year_index+1:]
-    X = torch.hstack([X_first, X_second])
+    day_index = name.index("day")
+    hour_index = name.index("hour")
+    minute_index = name.index("minute")
+    second_index = name.index("second")
+    # Assume every month is 30 days for ease of calculation.
+    timestamp = X[:,second_index] + 60 * (X[:,minute_index] + 60*(X[:,hour_index]+24*(X[:,day_index]+30*(X[:, month_index]+12*X[:,year_index]))))
+    timestamp = timestamp.reshape((-1,1))
+    X = torch.hstack([X, timestamp])
+    name.append("timestamp")
     return X
 
 def main():
     # Create a figure containing the plot of each feaure against the target
     dataset, meta = get_data(USE_PRUNE)
+    names = meta.names()
     data = np.array(dataset.tolist(), dtype=np.float64)
     data = torch.from_numpy(data).to(DEVICE)
-    target_index = meta.names().index(TARGET)
+    target_index = names.index(TARGET)
     X, y = split(data, target_index)
     y = y.squeeze()
-    X = extrapolate_time(X)
-    print(X.shape)
-    return
-    rows = math.ceil(X.shape[1]/2)
+    X = extrapolate_time(X, names)
+    #return
     for i in range(X.shape[1]):
         if i >= target_index:
             index = i + 1
@@ -35,12 +41,12 @@ def main():
             index = i
         x = X[:, i]
         plt.plot(x, y, "o")
-        title = f"{meta.names()[index]} vs {TARGET}"
+        title = f"{names[index]} vs {TARGET}"
         plt.title(title)
-        plt.xlabel(meta.names()[index])
+        plt.xlabel(names[index])
         plt.ylabel(TARGET)
         #plt.show() 
-        plt.savefig(f"../plots/{meta.names()[index]}.png")
+        plt.savefig(f"../plots/{names[index]}.png")
         plt.clf()
 
 if __name__ == '__main__':

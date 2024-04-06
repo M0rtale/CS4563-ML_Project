@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ray.init()  # Initialize Ray
 
     # Assuming the dataset file is in the correct location
-    file_path = '../dataset/pruned.arff'
+    file_path = '/home/allen/CS4563-ML_Project/dataset/pruned.arff'
     data_streamer = DataStreamer.remote(file_path)
 
     # Optionally, register the actor under a global name for easy access across processes
