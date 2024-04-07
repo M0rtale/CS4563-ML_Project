@@ -5,14 +5,19 @@ from torch.utils.tensorboard import SummaryWriter
 import argparse
 import time
 from dataset import myDataset
+from multiprocessing import shared_memory
+from multiprocessing.resource_tracker import unregister
 
 TARGET = "MM256"
 DEBUG = True
 USE_PRUNE = False
+USE_SHARED = False
 DEVICE = 'cpu'
 NUM_ITER = 10000
 LEARNING_RATE = 0.001
 EXP_NAME = "test"
+PRUNED_SHAPE = (1000,34)
+FULL_SHAPE = (9199930,34)
 
 def LOG(*args, **kwargs) -> None:
     '''simple debug print wrapper'''
@@ -20,17 +25,42 @@ def LOG(*args, **kwargs) -> None:
         print(*args)
 
 
-def get_data(prune:bool) -> (object, object):
+def get_data(prune:bool, shared:bool) -> (object, object):
     '''gets the dataset from ../dataset/dataset.arff'''
-    LOG("Beginning to get data")
-    if prune:
-        dataset, meta = arff.loadarff('../dataset/pruned.arff')
+    if shared:
+        LOG("Beginning to get data from namedpipe")
+        # Load Pruned to help with the metadata
+        dataset, meta = arff.loadarff("../dataset/pruned.arff")
+        if prune:
+            shm = shared_memory.SharedMemory(name='nppruned')
+            np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64, buffer=shm.buf)
+            ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64)
+            ret[:] = np_array[:]
+            #cleanup after ourselves to ensure resource is persistent
+            unregister(shm._name, 'shared_memory')
+            shm.close()
+        else:
+            shm = shared_memory.SharedMemory(name='npfull')
+            np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float64, buffer=shm.buf)
+            ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float64)
+            ret[:] = np_array[:]
+            #cleanup after ourselves to ensure resource is persistent
+            unregister(shm._name, 'shared_memory')
+            shm.close()
+        LOG("Stopped getting data")
+        data = torch.from_numpy(ret).to(DEVICE)
+        return data, meta
+
     else:
-        dataset, meta = arff.loadarff('../dataset/dataset.arff')
-    LOG("Stopped getting data")
-    data = np.array(dataset.tolist(), dtype=np.float64)
-    data = torch.from_numpy(data).to(DEVICE)
-    return data, meta
+        LOG("Beginning to get data from file")
+        if prune:
+            dataset, meta = arff.loadarff('../dataset/pruned.arff')
+        else:
+            dataset, meta = arff.loadarff('../dataset/dataset.arff')
+        LOG("Stopped getting data")
+        data = np.array(dataset.tolist(), dtype=np.float64)
+        data = torch.from_numpy(data).to(DEVICE)
+        return data, meta
 
 def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     '''Returns the Mean Squared Error between the predicted tensor value and actual'''
