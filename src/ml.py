@@ -98,7 +98,7 @@ def main() -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
-    data, meta = get_data(USE_PRUNE)
+    data, meta = get_data(USE_PRUNE, USE_SHARED)
     end = time.time()
     LOG("Time for global optimization:", end-start)
     data = torch.nn.functional.normalize(data)
