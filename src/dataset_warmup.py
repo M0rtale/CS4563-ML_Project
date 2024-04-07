@@ -4,6 +4,7 @@ from multiprocessing import shared_memory
 from scipy.io import arff
 from time import sleep
 import numpy as np
+import time
 
 
 def create_shared(data, name):
@@ -28,17 +29,23 @@ def create_shared(data, name):
 
 def main():
     print("Begin Loading Dataset Data")
+    start = time.time()
     dataset, meta = arff.loadarff("../dataset/dataset.arff")
     print("End Loading Data")
     data = np.array(dataset.tolist(), dtype=np.float64)
     shm = create_shared(data, 'npfull')
+    end = time.time()
+    print("Warmup time:", end - start)
 
 
     print("Begin Loading pruned Data")
+    start = time.time()
     dataset, meta = arff.loadarff("../dataset/pruned.arff")
     print("End Loading Data")
     data = np.array(dataset.tolist(), dtype=np.float64)
     shm = create_shared(data, 'nppruned')
+    end = time.time()
+    print("Warmup time:", end-start)
 
     #ensure data are persistent
     while True:
