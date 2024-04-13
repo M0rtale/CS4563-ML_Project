@@ -145,6 +145,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.tensor(X_poly,dtype=torch.float32).to(DEVICE)
+    X_poly = torch.nn.functional.normalize(X_poly)
     test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('test loss:',test_loss)
