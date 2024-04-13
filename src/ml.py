@@ -51,7 +51,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         ret.astype(dtype=np.float16)
         LOG("Stopped getting data")
         data = torch.from_numpy(ret).to(DEVICE)
-        data.to(torch.float16)
+        data = data.to(torch.float16)
         print(data.dtype)
         return data, meta
 
