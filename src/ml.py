@@ -118,20 +118,26 @@ def splitData(X: torch.tensor, y:torch.tensor)\
 
 
 def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
-    X_train, y_train, X_test, y_test, X_val, y_val = splitData(X, y)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y)
     #send to train
-    w = train(X_train, y_train)
+    poly = PolynomialFeatures(2)
+    X_poly = poly.fit_transform(X_train.cpu())
+    X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
-    test_pred = torch.matmul(X_test, w)
+    del X_poly
+    del X_train
+    del y_train
+
+    X_poly = poly.fit_transform(X_test.cpu())
+    X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('test loss:',test_loss)
     LOG("R^2: ", R_squared(test_pred, y_test))
     LOG("RSS: ", RSS(test_pred, y_test))
     LOG("TSS: ", TSS(y_test))
-    prediction = torch.dot(X_test[0, :], w[:,0])
-    LOG("Prediction: ", prediction)
-    LOG("Actual: ", y_test[0])
     return w
 
 
@@ -145,12 +151,9 @@ def main() -> None:
     #data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
-    poly = PolynomialFeatures(2)
-    X_poly = poly.fit_transform(X.cpu())
-    X_poly = torch.from_numpy(X_poly).to(DEVICE)
     #X_poly = torch.nn.functional.normalize(X_poly)
     #X_poly = X
-    LOG("Data shape after transform:", X_poly.shape)
+    # LOG("Data shape after transform:", X_poly.shape)
     train_eval(X_poly, y)
     
     
@@ -160,13 +163,15 @@ if __name__ == '__main__':
     parser.add_argument("--exp", default="test", type=str) 
     parser.add_argument("--full", action="store_true", default=False) 
     parser.add_argument("--shared", action="store_true", default=False)
+    parser.add_argument("--cpu", action="store_true", default=False)
     args = parser.parse_args()
     EXP_NAME = args.exp
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
-    if torch.cuda.is_available():
-        LOG("Cuda is available, switching to cuda")
-        DEVICE = "cuda"
-    else:
-        LOG("Cuda is not available, using CPU")
+    if not args.cpu:
+        if torch.cuda.is_available():
+            LOG("Cuda is available, switching to cuda")
+            DEVICE = "cuda"
+        else:
+            LOG("Cuda is not available, using CPU")
     main()
