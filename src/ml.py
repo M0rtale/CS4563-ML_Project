@@ -84,6 +84,9 @@ def splitXY(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.te
 
 def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     start = time.time()
     w_global = torch.linalg.pinv(X).matmul(y)
     # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
@@ -159,7 +162,7 @@ def main() -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
-    #X_poly = torch.nn.functional.normalize(X_poly)
+    X_poly = torch.nn.functional.normalize(X_poly)
     #X_poly = X
     # LOG("Data shape after transform:", X_poly.shape)
     train_eval(X, y)
