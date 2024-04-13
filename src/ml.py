@@ -35,7 +35,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         if prune:
             shm = shared_memory.SharedMemory(name='nppruned')
             np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64, buffer=shm.buf)
-            ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float16)
+            ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
             unregister(shm._name, 'shared_memory')
@@ -43,11 +43,12 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         else:
             shm = shared_memory.SharedMemory(name='npfull')
             np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float64, buffer=shm.buf)
-            ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float16)
+            ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float64)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
             unregister(shm._name, 'shared_memory')
             shm.close()
+        ret.astype(dtype=np.float16)
         LOG("Stopped getting data")
         data = torch.from_numpy(ret).to(DEVICE)
         return data, meta
@@ -129,7 +130,9 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    X_poly = torch.nn.functional.normalize(X_poly)
     print("X poly shape", X_poly.shape)
+    print("X_poly dtype: ", X_poly.dtype)
     del X_train
     #del y_train
     w = train(X_poly, y_train)
@@ -162,7 +165,7 @@ def main() -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
-    X = torch.nn.functional.normalize(X)
+    #X = torch.nn.functional.normalize(X)
     #X_poly = X
     # LOG("Data shape after transform:", X_poly.shape)
     train_eval(X, y)
