@@ -105,7 +105,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     shuffle(random_indices)
     train_end = floor(length * 0.3)
     train_indices = random_indices[0:train_end]
-    test_end = floor(length*0.1)
+    test_end = floor(length*0.)
     test_indices = random_indices[train_end: train_end+test_end]
     val_indices = random_indices[train_end+test_end:]
     X_train = X[train_indices, :]
@@ -125,12 +125,13 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    del X_train
+    del y_train
     w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
     del X_poly
-    del X_train
-    del y_train
+    
 
     X_test.to(DEVICE)
     y_test.to(DEVICE)
