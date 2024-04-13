@@ -49,7 +49,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             unregister(shm._name, 'shared_memory')
             shm.close()
         LOG("Stopped getting data")
-        data = torch.tensor(ret, dtype=torch.float32).to(DEVICE)
+        data = torch.tensor(ret, dtype=torch.float64).to(DEVICE)
         print(data.dtype)
         return data, meta
 
@@ -60,8 +60,8 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         else:
             dataset, meta = arff.loadarff('../dataset/dataset.arff')
         LOG("Stopped getting data")
-        data = np.array(dataset.tolist(), dtype=np.float32)
-        data = torch.tensor(data, dtype=torch.float32).to(DEVICE)
+        data = np.array(dataset.tolist(), dtype=np.float64)
+        data = torch.tensor(data, dtype=torch.float64).to(DEVICE)
         return data, meta
 
 def RSS(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
@@ -107,7 +107,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
-    train_end = floor(length * 0.25)
+    train_end = floor(length * 0.15)
     train_indices = random_indices[0:train_end]
     test_end = floor(length*0.5)
     test_indices = random_indices[train_end: train_end+test_end]
@@ -130,7 +130,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     #send to train
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
-    X_poly = torch.tensor(X_poly,dtype=torch.float32).to(DEVICE)
+    X_poly = torch.tensor(X_poly,dtype=torch.float64).to(DEVICE)
     #X_poly = torch.nn.functional.normalize(X_poly)
     print("X poly shape", X_poly.shape)
     print("X_poly dtype: ", X_poly.dtype)
@@ -145,7 +145,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     #X_test.to(DEVICE)
     y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
-    X_poly = torch.tensor(X_poly,dtype=torch.float32).to(DEVICE)
+    X_poly = torch.tensor(X_poly,dtype=torch.float64).to(DEVICE)
     #X_poly = torch.nn.functional.normalize(X_poly)
     test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
