@@ -119,6 +119,8 @@ def splitData(X: torch.tensor, y:torch.tensor)\
 
 def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y)
+    X_test.cpu()
+    y_test.cpu()
     #send to train
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
@@ -130,6 +132,8 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_train
     del y_train
 
+    X_test.to(DEVICE)
+    y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     test_pred = torch.matmul(X_poly, w)
