@@ -9,6 +9,7 @@ from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
 from random import shuffle
 from math import floor
+from sklearn.preprocessing import PolynomialFeatures
 
 TARGET = "MM256"
 DEBUG = True
@@ -25,7 +26,7 @@ def LOG(*args, **kwargs) -> None:
         print(*args)
 
 
-def get_data(prune:bool, shared:bool) -> (object, object):
+def get_data(prune:bool, shared:bool) -> tuple[object, object]:
     '''gets the dataset from ../dataset/dataset.arff'''
     if shared:
         LOG("Beginning to get data from namedpipe")
@@ -67,14 +68,9 @@ def RSS(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     cost = torch.sum(diff_squared)
     return cost
 
-def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
-    '''Returns the Mean Squared Error between the predicted tensor value and actual'''
-    loss = RSS(predicted, actual) / predicted.shape[0]
-    return loss
-
-def TSS(target:torch.tensor) -> torch.tensor:
-    mean = torch.mean(target)
-    return RSS(target, mean)
+def TSS(actual:torch.tensor) -> torch.tensor:
+    mean = torch.mean(actual).expand(actual.shape[0], 1)
+    return RSS(actual, mean)
 
 def R_squared(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     return 1 - RSS(predicted, actual) / TSS(actual)
@@ -90,14 +86,15 @@ def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
     w_global = torch.linalg.pinv(X).matmul(y)
+    # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
     end = time.time()
     LOG("Time for global optimization:", end-start)
     
-    LOG("y shape:", y.shape)
-    LOG("X shape:", X.shape)
+    LOG("y:", y)
+    LOG("X:", X)
     
     pred = torch.matmul(X, w_global)
-    loss = MSE(pred, y)
+    loss = torch.nn.functional.mse_loss(pred, y)
     LOG("Train loss:", loss)
     return w_global
 
@@ -120,6 +117,24 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
+def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
+    X_train, y_train, X_test, y_test, X_val, y_val = splitData(X, y)
+    #send to train
+    w = train(X_train, y_train)
+    LOG('output weights:',w)
+    LOG("weight shape: ", w.shape)
+    test_pred = torch.matmul(X_test, w)
+    test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
+    LOG('test loss:',test_loss)
+    LOG("R^2: ", R_squared(test_pred, y_test))
+    LOG("RSS: ", RSS(test_pred, y_test))
+    LOG("TSS: ", TSS(y_test))
+    prediction = torch.dot(X_test[0, :], w[:,0])
+    LOG("Prediction: ", prediction)
+    LOG("Actual: ", y_test[0])
+    return w
+
+
 def main() -> None:
     '''this is the entry of the program.
     {r}'''
@@ -127,17 +142,17 @@ def main() -> None:
     data, meta = get_data(USE_PRUNE, USE_SHARED)
     end = time.time()
     LOG("Time for global optimization:", end-start)
-    data = torch.nn.functional.normalize(data)
+    #data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
-    X_train, y_train, X_test, y_test, X_val, y_val = splitData(X, y)
-    #send to train
-    w = train(X_train, y_train)
-    LOG('output weights:',w)
-    test_pred = torch.matmul(X_test, w)
-    test_loss = MSE(test_pred, y_test)
-    LOG('test loss:',test_loss)
-    LOG("R^2: ", R_squared(test_pred, y_test))
+    poly = PolynomialFeatures(2)
+    X_poly = poly.fit_transform(X)
+    X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    #X_poly = torch.nn.functional.normalize(X_poly)
+    #X_poly = X
+    LOG("Data shape after transform:", X_poly.shape)
+    train_eval(X_poly, y)
+    
     
 
 if __name__ == '__main__':
