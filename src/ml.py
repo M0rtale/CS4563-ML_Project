@@ -34,7 +34,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         dataset, meta = arff.loadarff("../dataset/pruned.arff")
         if prune:
             shm = shared_memory.SharedMemory(name='nppruned')
-            np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float16, buffer=shm.buf)
+            np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64, buffer=shm.buf)
             ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float16)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
@@ -42,7 +42,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             shm.close()
         else:
             shm = shared_memory.SharedMemory(name='npfull')
-            np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float16, buffer=shm.buf)
+            np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float64, buffer=shm.buf)
             ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float16)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
@@ -103,7 +103,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
-    train_end = floor(length * 0.6)
+    train_end = floor(length * 0.15)
     train_indices = random_indices[0:train_end]
     test_end = floor(length*0.1)
     test_indices = random_indices[train_end: train_end+test_end]
@@ -154,8 +154,8 @@ def main() -> None:
     start = time.time()
     data, meta = get_data(USE_PRUNE, USE_SHARED)
     end = time.time()
-    LOG("Time for getting data:", end-start)
-    data = torch.nn.functional.normalize(data)
+    LOG("Time for data getting:", end-start)
+    #data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
