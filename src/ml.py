@@ -123,6 +123,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
 
 def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y)
+    print("types", X_train.dtype, y_train.dtype, )
     del X, y
     X_test.cpu()
     y_test.cpu()
@@ -141,7 +142,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_poly
     
 
-    X_test.to(DEVICE)
+    #X_test.to(DEVICE)
     y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.tensor(X_poly,dtype=torch.float32).to(DEVICE)
