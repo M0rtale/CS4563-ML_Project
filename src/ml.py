@@ -119,6 +119,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
 
 def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y)
+    del X, y
     X_test.cpu()
     y_test.cpu()
     #send to train
