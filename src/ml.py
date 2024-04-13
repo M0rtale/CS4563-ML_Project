@@ -103,9 +103,9 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
-    train_end = floor(length * 0.4)
+    train_end = floor(length * 0.3)
     train_indices = random_indices[0:train_end]
-    test_end = floor(length*0.3)
+    test_end = floor(length*0.1)
     test_indices = random_indices[train_end: train_end+test_end]
     val_indices = random_indices[train_end+test_end:]
     X_train = X[train_indices, :]
