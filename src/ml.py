@@ -146,7 +146,7 @@ def main() -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     poly = PolynomialFeatures(2)
-    X_poly = poly.fit_transform(X)
+    X_poly = poly.fit_transform(X.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     #X_poly = torch.nn.functional.normalize(X_poly)
     #X_poly = X
