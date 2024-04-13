@@ -50,8 +50,9 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             shm.close()
         ret.astype(dtype=np.float16)
         LOG("Stopped getting data")
-        data = torch.from_numpy(ret).to(DEVICE)
-        data = data.to(torch.float16)
+        #data = torch.from_numpy(ret).to(DEVICE)
+        data = ret
+        data = torch.tensor(data, dtype=torch.float16).to(DEVICE)
         print(data.dtype)
         return data, meta
 
