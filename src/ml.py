@@ -136,7 +136,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_train
     #del y_train
     w = train(X_poly, y_train)
-    LOG('output weights:',w)
+    #LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
     del X_poly
     
