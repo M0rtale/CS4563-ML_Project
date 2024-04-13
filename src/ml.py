@@ -88,7 +88,7 @@ def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     w_global = torch.linalg.pinv(X).matmul(y)
     # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
     end = time.time()
-    LOG("Time for global optimization:", end-start)
+    LOG("Time for getting data:", end-start)
     
     LOG("y:", y)
     LOG("X:", X)
@@ -155,7 +155,7 @@ def main() -> None:
     data, meta = get_data(USE_PRUNE, USE_SHARED)
     end = time.time()
     LOG("Time for global optimization:", end-start)
-    #data = torch.nn.functional.normalize(data)
+    data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
