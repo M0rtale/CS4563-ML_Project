@@ -49,7 +49,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             unregister(shm._name, 'shared_memory')
             shm.close()
         LOG("Stopped getting data")
-        data = torch.tensor(ret, dtype=torch.float16).to(DEVICE)
+        data = torch.tensor(ret, dtype=torch.float32).to(DEVICE)
         print(data.dtype)
         return data, meta
 
@@ -60,8 +60,8 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         else:
             dataset, meta = arff.loadarff('../dataset/dataset.arff')
         LOG("Stopped getting data")
-        data = np.array(dataset.tolist(), dtype=np.float16)
-        data = torch.tensor(data, dtype=torch.float16).to(DEVICE)
+        data = np.array(dataset.tolist(), dtype=np.float32)
+        data = torch.tensor(data, dtype=torch.float32).to(DEVICE)
         return data, meta
 
 def RSS(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
@@ -129,7 +129,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     #send to train
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
-    X_poly = torch.tensor(X_poly,dtype=torch.float16).to(DEVICE)
+    X_poly = torch.tensor(X_poly,dtype=torch.float32).to(DEVICE)
     X_poly = torch.nn.functional.normalize(X_poly)
     print("X poly shape", X_poly.shape)
     print("X_poly dtype: ", X_poly.dtype)
