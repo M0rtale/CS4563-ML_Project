@@ -7,14 +7,14 @@ import time
 from dataset import myDataset
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
+from random import shuffle
+from math import floor
 
 TARGET = "MM256"
 DEBUG = True
 USE_PRUNE = False
 USE_SHARED = False
 DEVICE = 'cpu'
-NUM_ITER = 10000
-LEARNING_RATE = 0.001
 EXP_NAME = "test"
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
@@ -62,25 +62,32 @@ def get_data(prune:bool, shared:bool) -> (object, object):
         data = torch.from_numpy(data).to(DEVICE)
         return data, meta
 
+def RSS(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
+    diff_squared = torch.pow((predicted - actual), 2)
+    cost = torch.sum(diff_squared)
+    return cost
+
 def MSE(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
     '''Returns the Mean Squared Error between the predicted tensor value and actual'''
-    diff_squared = torch.pow((predicted - actual), 2)
-    loss = torch.sum(diff_squared) / predicted.shape[0]
+    loss = RSS(predicted, actual) / predicted.shape[0]
     return loss
 
-def splitXY(data:torch.tensor, targetIndex: int) -> myDataset:
+def TSS(target:torch.tensor) -> torch.tensor:
+    mean = torch.mean(target)
+    return RSS(target, mean)
+
+def R_squared(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
+    return 1 - RSS(predicted, actual) / TSS(actual)
+
+def splitXY(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.tensor]:
     y = data[:, targetIndex].reshape((data.shape[0], 1))
     X_first = data[:,:targetIndex]
     X_second = data[:, targetIndex+1:]
     X = torch.hstack([X_first, X_second])
-    dataset = myDataset(X, y)
-    return dataset
+    return X, y
 
-def train(data: torch.tensor, targetIndex: int) -> torch.tensor:
+def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    dataset = splitXY(data, targetIndex)
-    X, y = dataset.getXY()
-    # train, test, validation = torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
     start = time.time()
     w_global = torch.linalg.pinv(X).matmul(y)
     end = time.time()
@@ -91,8 +98,27 @@ def train(data: torch.tensor, targetIndex: int) -> torch.tensor:
     
     pred = torch.matmul(X, w_global)
     loss = MSE(pred, y)
-    LOG("Global loss:", loss)
+    LOG("Train loss:", loss)
     return w_global
+
+def splitData(X: torch.tensor, y:torch.tensor)\
+    ->tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
+    length = X.shape[0]
+    random_indices = list(range(0, length))
+    shuffle(random_indices)
+    train_end = floor(length * 0.8)
+    train_indices = random_indices[0:train_end]
+    test_end = floor(length*0.1)
+    test_indices = random_indices[train_end: train_end+test_end]
+    val_indices = random_indices[train_end+test_end:]
+    X_train = X[train_indices, :]
+    y_train = y[train_indices, :]
+    X_test = X[test_indices, :]
+    y_test = y[test_indices, :]
+    X_val = X[val_indices, :]
+    y_val = y[val_indices, :]
+    return X_train, y_train, X_test, y_test, X_val, y_val
+
 
 def main() -> None:
     '''this is the entry of the program.
@@ -103,17 +129,26 @@ def main() -> None:
     LOG("Time for global optimization:", end-start)
     data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
-
+    X, y = splitXY(data, meta.names().index(TARGET))
+    X_train, y_train, X_test, y_test, X_val, y_val = splitData(X, y)
     #send to train
-    w = train(data, meta.names().index(TARGET))
-    LOG(w)
+    w = train(X_train, y_train)
+    LOG('output weights:',w)
+    test_pred = torch.matmul(X_test, w)
+    test_loss = MSE(test_pred, y_test)
+    LOG('test loss:',test_loss)
+    LOG("R^2: ", R_squared(test_pred, y_test))
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
     parser.add_argument("--exp", default="test", type=str) 
+    parser.add_argument("--full", action="store_true", default=False) 
+    parser.add_argument("--shared", action="store_true", default=False)
     args = parser.parse_args()
     EXP_NAME = args.exp
+    USE_PRUNE = not args.full
+    USE_SHARED = args.shared
     if torch.cuda.is_available():
         LOG("Cuda is available, switching to cuda")
         DEVICE = "cuda"
