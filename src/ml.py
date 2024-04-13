@@ -34,16 +34,16 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         dataset, meta = arff.loadarff("../dataset/pruned.arff")
         if prune:
             shm = shared_memory.SharedMemory(name='nppruned')
-            np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64, buffer=shm.buf)
-            ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float64)
+            np_array = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float16, buffer=shm.buf)
+            ret = np.ndarray(shape=PRUNED_SHAPE, dtype=np.float16)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
             unregister(shm._name, 'shared_memory')
             shm.close()
         else:
             shm = shared_memory.SharedMemory(name='npfull')
-            np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float64, buffer=shm.buf)
-            ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float64)
+            np_array = np.ndarray(shape=FULL_SHAPE, dtype=np.float16, buffer=shm.buf)
+            ret = np.ndarray(shape=FULL_SHAPE, dtype=np.float16)
             ret[:] = np_array[:]
             #cleanup after ourselves to ensure resource is persistent
             unregister(shm._name, 'shared_memory')
@@ -59,7 +59,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
         else:
             dataset, meta = arff.loadarff('../dataset/dataset.arff')
         LOG("Stopped getting data")
-        data = np.array(dataset.tolist(), dtype=np.float64)
+        data = np.array(dataset.tolist(), dtype=np.float16)
         data = torch.from_numpy(data).to(DEVICE)
         return data, meta
 
@@ -103,7 +103,7 @@ def splitData(X: torch.tensor, y:torch.tensor)\
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
-    train_end = floor(length * 0.2)
+    train_end = floor(length * 0.6)
     train_indices = random_indices[0:train_end]
     test_end = floor(length*0.1)
     test_indices = random_indices[train_end: train_end+test_end]
