@@ -154,7 +154,7 @@ def main() -> None:
     #X_poly = torch.nn.functional.normalize(X_poly)
     #X_poly = X
     # LOG("Data shape after transform:", X_poly.shape)
-    train_eval(X_poly, y)
+    train_eval(X, y)
     
     
 
