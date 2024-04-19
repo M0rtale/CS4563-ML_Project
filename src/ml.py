@@ -182,9 +182,6 @@ def main() -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
-    #X_poly = torch.nn.functional.normalize(X_poly)
-    #X_poly = X
-    # LOG("Data shape after transform:", X_poly.shape)
     train_eval(X, y)
     
     
