@@ -100,8 +100,30 @@ def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     LOG("Training TSS: ", TSS(y))
     return w_global
 
-def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)\
-    ->tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
+def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
+    '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
+    start = time.time()
+    X_squared = torch.matmul(torch.transpose(X, 0, 1), X)
+    I_prime = torch.eye((X.shape[1], X.shape[1]))
+    I_prime[0][0] = 0
+    inside_inv = X_squared + X.shape[0] * lamb * I_prime
+    del X_squared
+    inv = torch.linalg.inv(inside_inv)
+    first_part = torch.matmul(inv, torch.transpose(X, 0, 1))
+    del inv
+    w_global = torch.matmul(first_part, y)
+    del first_part
+    end = time.time()
+    LOG("Time for global optimization:", end-start)
+    pred = torch.matmul(X, w_global)
+    loss = torch.nn.functional.mse_loss(pred, y)
+    LOG('Training MSE:',loss)
+    LOG("Training R^2: ", R_squared(pred, y))
+    LOG("Training RSS: ", RSS(pred, y))
+    LOG("Training TSS: ", TSS(y))
+    return w_global
+
+def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)->tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
@@ -119,7 +141,7 @@ def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)\
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
-def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
+def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
     del X, y
@@ -131,7 +153,10 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     #send to cuda
     X_test.to(DEVICE)
     y_train.to(DEVICE)
-    w = train(X_train, y_train)
+    if reg:
+        w = train_reg(X_train, y_train, lamb)
+    else:
+        w = train(X_train, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
     
@@ -181,20 +206,20 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     return w
 
 
-def main(poly:bool) -> None:
+def main(poly:bool, reg:float) -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
     data, meta = get_data(USE_PRUNE, USE_SHARED)
     end = time.time()
-    LOG("Time for global optimization:", end-start)
+    LOG("Time for getting data:", end-start)
     #data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
     del meta
     if poly:
-        train_eval_poly(X, y)
+        train_eval_poly(X, y, )
     else:
         train_eval(X, y)
     
@@ -206,6 +231,7 @@ if __name__ == '__main__':
     parser.add_argument("--shared", action="store_true", default=False)
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--poly", action="store_true", default=False)
+    parser.add_argument("--reg", action="store_true", default=False)
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
@@ -215,4 +241,4 @@ if __name__ == '__main__':
             DEVICE = "cuda"
         else:
             LOG("Cuda is not available, using CPU")
-    main(args.poly)
+    main(args.poly, args.reg)
