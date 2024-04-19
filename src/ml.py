@@ -48,7 +48,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             unregister(shm._name, 'shared_memory')
             shm.close()
         LOG("Stopped getting data")
-        data = torch.from_numpy(ret).to(DEVICE)
+        data = torch.from_numpy(ret).to('cpu')
         return data, meta
 
     else:
@@ -59,7 +59,7 @@ def get_data(prune:bool, shared:bool) -> tuple[object, object]:
             dataset, meta = arff.loadarff('../dataset/dataset.arff')
         LOG("Stopped getting data")
         data = np.array(dataset.tolist(), dtype=np.float64)
-        data = torch.from_numpy(data).to(DEVICE)
+        data = torch.from_numpy(data).to('cpu')
         return data, meta
 
 def RSS(predicted:torch.tensor, actual:torch.tensor) -> torch.tensor:
@@ -103,7 +103,7 @@ def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)\
     shuffle(random_indices)
     train_end = floor(length * train)
     train_indices = random_indices[0:train_end]
-    test_end = floor(length*test)
+    test_end = floor(length * test)
     test_indices = random_indices[train_end: train_end+test_end]
     val_indices = random_indices[train_end+test_end:]
     X_train = X[train_indices, :]
@@ -124,6 +124,9 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     X_train = torch.nn.functional.normalize(X_train)
     #send to train
     #del y_train
+    #send to cuda
+    X_test.to(DEVICE)
+    y_train.to(DEVICE)
     w = train(X_train, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
@@ -150,11 +153,6 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     print("4torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     print("4torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     print("4torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
-    X_test.cpu()
-    y_test.cpu()
-    print("5torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("5torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("5torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     #send to train
     poly = PolynomialFeatures(2)
@@ -165,6 +163,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     print("X poly shape", X_poly.shape)
     del X_train
     #del y_train
+    y_test = y_train.to(DEVICE)
     w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
