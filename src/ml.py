@@ -158,7 +158,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
 
 def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.15, 0.1)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.1, 0.1)
     del X, y
 
     #send to train
@@ -171,9 +171,6 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_train
     #del y_train
     y_train = y_train.to(DEVICE)
-    print("1torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("1torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("1torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
