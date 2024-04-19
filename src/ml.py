@@ -146,14 +146,16 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X, y, X_val, y_val
     X_test.cpu()
     y_test.cpu()
-    LOG("X_train: ", X_train.shape)
-    LOG("y_train: ", y_train.shape)
-    
+
     #send to train
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     X_poly = torch.nn.functional.normalize(X_poly)
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+    
     print("X poly shape", X_poly.shape)
     del X_train
     #del y_train
@@ -187,6 +189,7 @@ def main(poly:bool) -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
+    del meta
     if poly:
         train_eval_poly(X, y)
     else:
