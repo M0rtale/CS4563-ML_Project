@@ -16,7 +16,6 @@ DEBUG = True
 USE_PRUNE = False
 USE_SHARED = False
 DEVICE = 'cpu'
-EXP_NAME = "test"
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
 
@@ -171,7 +170,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     return w
 
 
-def main() -> None:
+def main(poly:bool) -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
@@ -182,18 +181,20 @@ def main() -> None:
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
-    train_eval(X, y)
+    if poly:
+        train_eval_poly(X, y)
+    else:
+        train_eval(X, y)
     
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
-    parser.add_argument("--exp", default="test", type=str) 
     parser.add_argument("--full", action="store_true", default=False) 
     parser.add_argument("--shared", action="store_true", default=False)
     parser.add_argument("--cpu", action="store_true", default=False)
+    parser.add_argument("--poly", action="store_true", default=False)
     args = parser.parse_args()
-    EXP_NAME = args.exp
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
     if not args.cpu:
@@ -202,4 +203,4 @@ if __name__ == '__main__':
             DEVICE = "cuda"
         else:
             LOG("Cuda is not available, using CPU")
-    main()
+    main(args.poly)
