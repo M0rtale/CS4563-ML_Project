@@ -89,23 +89,22 @@ def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
     end = time.time()
     LOG("Time for global optimization:", end-start)
-    
-    LOG("y:", y)
-    LOG("X:", X)
-    
     pred = torch.matmul(X, w_global)
     loss = torch.nn.functional.mse_loss(pred, y)
-    LOG("Train loss:", loss)
+    LOG('Training MSE:',loss)
+    LOG("Training R^2: ", R_squared(pred, y))
+    LOG("Training RSS: ", RSS(pred, y))
+    LOG("Training TSS: ", TSS(y))
     return w_global
 
-def splitData(X: torch.tensor, y:torch.tensor)\
+def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)\
     ->tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]:
     length = X.shape[0]
     random_indices = list(range(0, length))
     shuffle(random_indices)
-    train_end = floor(length * 0.2)
+    train_end = floor(length * train)
     train_indices = random_indices[0:train_end]
-    test_end = floor(length*0.1)
+    test_end = floor(length*test)
     test_indices = random_indices[train_end: train_end+test_end]
     val_indices = random_indices[train_end+test_end:]
     X_train = X[train_indices, :]
@@ -118,7 +117,32 @@ def splitData(X: torch.tensor, y:torch.tensor)\
 
 
 def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y)
+    # Train and evalute linear regression model
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
+    del X, y
+    X_test.cpu()
+    y_test.cpu()
+    #send to train
+    #del y_train
+    w = train(X_train, y_train)
+    LOG('output weights:',w)
+    LOG("weight shape: ", w.shape)
+    del X_poly
+    
+
+    X_test.to(DEVICE)
+    y_test.to(DEVICE)
+    test_pred = torch.matmul(X_test, w)
+    test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
+    LOG('MSE:',test_loss)
+    LOG("R^2: ", R_squared(test_pred, y_test))
+    LOG("RSS: ", RSS(test_pred, y_test))
+    LOG("TSS: ", TSS(y_test))
+    return w
+
+def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
+    # Train and evaluate linear regression model with polynomial transformation of degree 2
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.2, 0.1)
     del X, y
     X_test.cpu()
     y_test.cpu()
@@ -141,7 +165,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
-    LOG('test loss:',test_loss)
+    LOG('MSE:',test_loss)
     LOG("R^2: ", R_squared(test_pred, y_test))
     LOG("RSS: ", RSS(test_pred, y_test))
     LOG("TSS: ", TSS(y_test))
