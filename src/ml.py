@@ -148,6 +148,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    X_poly = torch.nn.functional.normalize(X_poly)
     print("X poly shape", X_poly.shape)
     del X_train
     #del y_train
@@ -157,10 +158,10 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_poly
     
 
-    X_test.to(DEVICE)
     y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    X_poly = torch.nn.functional.normalize(X_poly)
     test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('MSE:',test_loss)
