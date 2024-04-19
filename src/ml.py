@@ -84,6 +84,9 @@ def splitXY(data:torch.tensor, targetIndex: int) -> tuple[torch.tensor, torch.te
 def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
+    print("1torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("1torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("1torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     w_global = torch.linalg.pinv(X).matmul(y)
     # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
     end = time.time()
@@ -157,7 +160,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     print("X poly shape", X_poly.shape)
     del X_train
     #del y_train
-    y_test = y_train.to(DEVICE)
+    y_train = y_train.to(DEVICE)
     print("1torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     print("1torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     print("1torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
