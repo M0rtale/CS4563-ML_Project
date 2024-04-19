@@ -231,7 +231,7 @@ if __name__ == '__main__':
     parser.add_argument("--shared", action="store_true", default=False)
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--poly", action="store_true", default=False)
-    parser.add_argument("--reg", action="store_true", default=False)
+    parser.add_argument("--reg", type=float, default=False)
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
