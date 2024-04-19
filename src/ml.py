@@ -146,6 +146,9 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X, y, X_val, y_val
     X_test.cpu()
     y_test.cpu()
+    LOG("X_train: ", X_train.shape)
+    LOG("y_train: ", y_train.shape)
+    
     #send to train
     poly = PolynomialFeatures(2)
     X_poly = poly.fit_transform(X_train.cpu())
