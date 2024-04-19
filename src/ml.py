@@ -104,7 +104,7 @@ def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
     X_squared = torch.matmul(torch.transpose(X, 0, 1), X)
-    I_prime = torch.eye((X.shape[1], X.shape[1]))
+    I_prime = torch.eye(X.shape[1], X.shape[1])
     I_prime[0][0] = 0
     inside_inv = X_squared + X.shape[0] * lamb * I_prime
     del X_squared
@@ -153,7 +153,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     #send to cuda
     X_test.to(DEVICE)
     y_train.to(DEVICE)
-    if reg:
+    if lamb > 0:
         w = train_reg(X_train, y_train, lamb)
     else:
         w = train(X_train, y_train)
@@ -172,7 +172,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     LOG("TSS: ", TSS(y_test))
     return w
 
-def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
+def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.1, 0.1)
     del X, y
@@ -187,7 +187,10 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_train
     #del y_train
     y_train = y_train.to(DEVICE)
-    w = train(X_poly, y_train)
+    if lamb > 0:
+        w = train_reg(X_poly, y_train, lamb)
+    else:
+        w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
     del X_poly
@@ -219,9 +222,9 @@ def main(poly:bool, reg:float) -> None:
     del data
     del meta
     if poly:
-        train_eval_poly(X, y, )
+        train_eval_poly(X, y, reg)
     else:
-        train_eval(X, y)
+        train_eval(X, y, reg)
     
     
 
@@ -231,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument("--shared", action="store_true", default=False)
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--poly", action="store_true", default=False)
-    parser.add_argument("--reg", type=float, default=False)
+    parser.add_argument("--reg", type=float, default=0)
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
