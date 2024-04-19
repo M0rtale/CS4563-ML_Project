@@ -121,6 +121,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X, y
     X_test.cpu()
     y_test.cpu()
+    X_train = torch.nn.functional.normalize(X_train)
     #send to train
     #del y_train
     w = train(X_train, y_train)
@@ -130,6 +131,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
 
     X_test.to(DEVICE)
     y_test.to(DEVICE)
+    X_test = torch.nn.functional.normalize(X_test)
     test_pred = torch.matmul(X_test, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('MSE:',test_loss)
