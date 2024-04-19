@@ -146,13 +146,7 @@ def train_eval(X: torch.tensor, y:torch.tensor)->torch.tensor:
 def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.15, 0.1)
-    print("3torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("3torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("3torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     del X, y
-    print("4torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("4torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("4torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     #send to train
     poly = PolynomialFeatures(2)
@@ -164,6 +158,9 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor)->torch.tensor:
     del X_train
     #del y_train
     y_test = y_train.to(DEVICE)
+    print("1torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("1torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("1torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     w = train(X_poly, y_train)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
@@ -193,14 +190,8 @@ def main(poly:bool) -> None:
     #data = torch.nn.functional.normalize(data)
     LOG("Data shape:", data.shape)
     X, y = splitXY(data, meta.names().index(TARGET))
-    print("1torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("1torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("1torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     del data
     del meta
-    print("2torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("2torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("2torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     if poly:
         train_eval_poly(X, y)
     else:
