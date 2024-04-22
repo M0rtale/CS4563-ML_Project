@@ -3,6 +3,12 @@ from scipy.io import arff
 from random import shuffle
 from math import floor
 import numpy as np
+from dataset import myDataset
+from multiprocessing import shared_memory
+from multiprocessing.resource_tracker import unregister
+
+PRUNED_SHAPE = (1000,34)
+FULL_SHAPE = (9199930,34)
 
 DEBUG = True
 
