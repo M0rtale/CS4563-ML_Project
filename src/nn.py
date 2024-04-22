@@ -48,14 +48,13 @@ def setup_and_init_weights(nn_structure):
         b[l] = torch.rand((nn_structure[l],), dtype=torch.float64).to(DEVICE)
     return W, b
 
-def train_nn_relu(nn_structure, X, y, iter_num=3000, alpha=0.25):
+def train_nn(nn_structure, X, y, iter_num=3000, alpha=0.25, lamb=0):
     W, b = setup_and_init_weights(nn_structure)
     cnt = 0
     N = len(y)
     LOG('Starting gradient descent for {} iterations'.format(iter_num))
     while cnt < iter_num:
-        if cnt % 1000 == 0:
-            LOG('Iteration {} of {}'.format(cnt, iter_num))
+        LOG('Iteration {} of {}'.format(cnt, iter_num))
         delta = {}
         # perform the feed forward pass and return the stored a and z values, to be used in the
         # gradient descent step
@@ -68,7 +67,7 @@ def train_nn_relu(nn_structure, X, y, iter_num=3000, alpha=0.25):
                 if l > 1:
                     delta[l] = calculate_hidden_delta_relu(delta[l+1], W[l], z[l])
                 # triW^(l) = triW^(l) + delta^(l+1) * transpose(a^(l))
-                W[l] += -alpha * (1.0/N * torch.matmul(torch.transpose(a[l], 0, 1), delta[l+1]))
+                W[l] += -alpha * (1.0/N * torch.matmul(torch.transpose(a[l], 0, 1), delta[l+1]) + lamb*W[l])
                 b[l] += -alpha * (1.0/N * torch.sum(delta[l+1], dim=0))
                 # trib^(l) = trib^(l) + delta^(l+1)
         # perform the gradient descent step for the weights in each layer
@@ -81,7 +80,7 @@ def predict_y(W, b, X, n_layers):
     return y
 
 
-def main(iter:int, lr:float):
+def main(iter:int, lr:float, lamb:float):
     data, meta = get_data(USE_PRUNE, USE_SHARED)
     data = data.to(DEVICE)
     X, y = splitXY(data, meta.names().index(TARGET))
@@ -94,7 +93,7 @@ def main(iter:int, lr:float):
     y_test = y_test.to("cpu")
     nn_structure = [33, 10, 1]
     # train the NN
-    W_relu, b_relu = train_nn_relu(nn_structure, X_train, y_train, iter, lr)
+    W_relu, b_relu = train_nn(nn_structure, X_train, y_train, iter, lr)
     pred = predict_y(W_relu, b_relu, X_train, 3)
     loss = torch.nn.functional.mse_loss(pred, y_train)
     LOG('Training MSE:',loss)
@@ -121,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--iter", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--reg", type=float, default=0)
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
@@ -130,4 +130,4 @@ if __name__ == '__main__':
             DEVICE = "cuda"
         else:
             LOG("Cuda is not available, using CPU")
-    main(args.iter, args.lr)
+    main(args.iter, args.lr, args.reg)
