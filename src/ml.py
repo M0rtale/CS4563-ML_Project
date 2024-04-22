@@ -104,7 +104,7 @@ def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
     X_squared = torch.matmul(torch.transpose(X, 0, 1), X)
-    I_prime = torch.eye(X.shape[1], X.shape[1])
+    I_prime = torch.eye(X.shape[1], X.shape[1]).to(DEVICE)
     I_prime[0][0] = 0
     inside_inv = X_squared + X.shape[0] * lamb * I_prime
     del X_squared
@@ -145,14 +145,13 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
     del X, y
-    X_test.cpu()
-    y_test.cpu()
+    X_train = X_train.to(DEVICE)
+    y_train = y_train.to(DEVICE)
     X_train = torch.nn.functional.normalize(X_train)
+    X_train = torch.hstack((torch.ones(X_train.shape[0], 1).to(DEVICE), X_train))
     #send to train
     #del y_train
     #send to cuda
-    X_test.to(DEVICE)
-    y_train.to(DEVICE)
     if lamb > 0:
         w = train_reg(X_train, y_train, lamb)
     else:
@@ -161,9 +160,11 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     LOG("weight shape: ", w.shape)
     
 
-    X_test.to(DEVICE)
-    y_test.to(DEVICE)
+    X_test = X_test.to(DEVICE)
+    y_test = y_test.to(DEVICE)
     X_test = torch.nn.functional.normalize(X_test)
+    X_test = torch.hstack((torch.ones(X_test.shape[0], 1).to(DEVICE), X_test))
+    
     test_pred = torch.matmul(X_test, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('MSE:',test_loss)
@@ -182,6 +183,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     X_poly = poly.fit_transform(X_train.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     X_poly = torch.nn.functional.normalize(X_poly)
+    X_poly[:, 0] = 1
     
     print("X poly shape", X_poly.shape)
     del X_train
@@ -200,6 +202,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     X_poly = torch.nn.functional.normalize(X_poly)
+    X_poly[:, 0] = 1
     test_pred = torch.matmul(X_poly, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('MSE:',test_loss)
