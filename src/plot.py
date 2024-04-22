@@ -1,4 +1,4 @@
-from ml import get_data, splitXY
+from util import get_data, splitXY
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
