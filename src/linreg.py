@@ -93,7 +93,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
 
 def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.1, 0.1)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
     del X, y
 
     #send to train
