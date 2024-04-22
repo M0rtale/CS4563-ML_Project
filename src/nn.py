@@ -91,10 +91,10 @@ def main(iter:int, lr:float, lamb:float):
     del X, y
     X_test = X_test.to("cpu")
     y_test = y_test.to("cpu")
-    nn_structure = [33, 10, 1]
+    nn_structure = [33, 20, 10, 1]
     # train the NN
     W_relu, b_relu = train_nn(nn_structure, X_train, y_train, iter, lr)
-    pred = predict_y(W_relu, b_relu, X_train, 3)
+    pred = predict_y(W_relu, b_relu, X_train, len(nn_structure))
     loss = torch.nn.functional.mse_loss(pred, y_train)
     LOG('Training MSE:',loss)
     LOG("Training R^2: ", R_squared(pred, y_train))
@@ -104,7 +104,7 @@ def main(iter:int, lr:float, lamb:float):
     del X_train, y_train
     X_test = X_test.to(DEVICE)
     y_test = y_test.to(DEVICE)
-    test_pred = predict_y(W_relu, b_relu, X_test, 3)
+    test_pred = predict_y(W_relu, b_relu, X_test, len(nn_structure))
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
     LOG('MSE:',test_loss)
     LOG("R^2: ", R_squared(test_pred, y_test))
