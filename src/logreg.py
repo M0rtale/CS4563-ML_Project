@@ -66,7 +66,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     decoded_pred = onehot_decoding(pred)
     LOG("Decoded pred: ", decoded_pred[:10])
     LOG("Encoded y: ", y_train[:10])
-    LOG("Decoded y: ", onehot_decoding(pred)[:10])
+    LOG("Decoded y: ", onehot_decoding(y_train)[:10])
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
 
