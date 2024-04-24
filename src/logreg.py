@@ -27,33 +27,7 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
     
-    
     return w
-
-def train_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
-    '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    start = time.time()
-
-    X_squared = torch.matmul(torch.transpose(X, 0, 1), X)
-    I_prime = torch.eye(X.shape[1], X.shape[1]).to(DEVICE)
-    I_prime[0][0] = 0
-    inside_inv = X_squared + X.shape[0] * lamb * I_prime
-    del X_squared
-    inv = torch.linalg.inv(inside_inv)
-    first_part = torch.matmul(inv, torch.transpose(X, 0, 1))
-    del inv
-    w_global = torch.matmul(first_part, y)
-    del first_part
-
-    end = time.time()
-    LOG("Time for global optimization:", end-start)
-    pred = torch.matmul(X, w_global)
-    loss = torch.nn.functional.mse_loss(pred, y)
-    LOG('Training MSE:',loss)
-    LOG("Training R^2: ", R_squared(pred, y))
-    LOG("Training RSS: ", RSS(pred, y))
-    LOG("Training TSS: ", TSS(y))
-    return w_global
 
 def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
@@ -70,13 +44,14 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     #send to cuda
     start = time.time()
     for i in range(y_train.shape[1]):
+        LOG("Start training model ", i)
         if lamb > 0:
-            w[:, i] = train_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
+            w[:, i] = train_one_vs_all_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
         else:
             w[:, i] = train_one_vs_all(X_train, y_train[:, i, None], iter, lr).squeeze(1)
-
-    end = time.time()
-    LOG("Time for training:", end-start)
+        
+        end = time.time()
+        LOG("Time for training:", end-start)
     pred = classify(w, X_train)
     LOG("Training accuracy:", accuracy(pred, y_train))
     
