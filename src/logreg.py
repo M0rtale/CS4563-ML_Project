@@ -1,13 +1,17 @@
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from sklearn.preprocessing import PolynomialFeatures
+
 import argparse
 import time
+
 from dataset import myDataset
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
-from sklearn.preprocessing import PolynomialFeatures
+
 from util import *
+from softmax import dummy_encoding
 
 TARGET = "MM256"
 USE_PRUNE = False
@@ -16,25 +20,38 @@ DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
 
+def f_sigmoid(z: torch.tensor) -> torch.tensor:
+    return torch.sigmoid(z)
 
-def train(X:torch.tensor, y:torch.tensor) -> torch.tensor:
+def f_deri_sigmoid(z: torch.tensor) -> torch.tensor:
+    return torch.sigmoid(z) * (1 - torch.sigmoid(z))
+
+
+def train(X:torch.tensor, y:torch.tensor, num_iter = 10000, learning_rate = 0.01) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
-    X_inv = torch.linalg.pinv(X)
-    X.cpu()
-    w_global = X_inv.matmul(y)
-    del X_inv
-    X.to(DEVICE)
+    
+    w = torch.zeros((X.shape[1], 1))
+    for _ in range(num_iter):
+        #w = w + a * (XT (y - sigmoid(Xw)))
+        w = w + learning_rate * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
+    
+    # X_inv = torch.linalg.pinv(X)
+    # X.cpu()
+    # w_global = X_inv.matmul(y)
+    # del X_inv
+    # X.to(DEVICE)
     # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
+    
     end = time.time()
-    LOG("Time for global optimization:", end-start)
-    pred = torch.matmul(X, w_global)
+    LOG("Time for gradient ascent:", end-start)
+    pred = torch.matmul(X, w)
     loss = torch.nn.functional.mse_loss(pred, y)
     LOG('Training MSE:',loss)
     LOG("Training R^2: ", R_squared(pred, y))
     LOG("Training RSS: ", RSS(pred, y))
     LOG("Training TSS: ", TSS(y))
-    return w_global
+    return w
 
 def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
