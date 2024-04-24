@@ -21,15 +21,12 @@ FULL_SHAPE = (9199930,34)
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    start = time.time()
     
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
     
-    end = time.time()
-    LOG("Time for gradient ascent:", end-start)
     
     return w
 
@@ -60,6 +57,7 @@ def train_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) 
 
 def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
+    X = X.cuda()
     X = torch.nn.functional.normalize(X)
     X = torch.hstack((torch.ones(X.shape[0], 1).to(DEVICE), X))
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
@@ -70,13 +68,15 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     #send to train
     #del y_train
     #send to cuda
-    decoded_y_train = onehot_decoding(y_train)
+    start = time.time()
     for i in range(y_train.shape[1]):
         if lamb > 0:
             w[:, i] = train_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
         else:
             w[:, i] = train_one_vs_all(X_train, y_train[:, i, None], iter, lr).squeeze(1)
 
+    end = time.time()
+    LOG("Time for training:", end-start)
     pred = classify(w, X_train)
     LOG("Training accuracy:", accuracy(pred, y_train))
     
