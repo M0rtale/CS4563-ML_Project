@@ -122,6 +122,7 @@ def onehot_decoding(y:torch.tensor):
 
 def classify(w:torch.tensor, X:torch.tensor)->torch.tensor:
     pred = f_sigmoid(torch.matmul(X, w))
+    LOG(pred[:10])
     y = torch.zeros_like(pred).scatter_(1, torch.argmax(pred, dim=1).unsqueeze(1), 1.)
     return y
 
