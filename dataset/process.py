@@ -4,7 +4,7 @@ from collections import defaultdict
 from math import floor
 
 data = ''
-with open("dataset.arff", "r") as h:
+with open("pruned.arff", "r") as h:
     data = h.read()
 
 flag = False
@@ -25,7 +25,7 @@ for i in data.split("\n"):
     if flag:
         spl = i.split(",")
         val = float(spl[20])
-        freq[floor(val)] += 1
+        freq[round(val,2)] += 1
         aggregate.append(val)
 
 print("min:", min(aggregate))

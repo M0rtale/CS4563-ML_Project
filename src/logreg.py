@@ -11,7 +11,6 @@ from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
 
 from util import *
-from softmax import dummy_encoding
 
 TARGET = "MM256"
 USE_PRUNE = False
@@ -20,42 +19,24 @@ DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
 
-def f_sigmoid(z: torch.tensor) -> torch.tensor:
-    return torch.sigmoid(z)
-
-def f_deri_sigmoid(z: torch.tensor) -> torch.tensor:
-    return torch.sigmoid(z) * (1 - torch.sigmoid(z))
-
-
-def train(X:torch.tensor, y:torch.tensor, num_iter = 10000, learning_rate = 0.01) -> torch.tensor:
+def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
     
-    w = torch.zeros((X.shape[1], 1))
-    for _ in range(num_iter):
+    w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
+    for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
-        w = w + learning_rate * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
-    
-    # X_inv = torch.linalg.pinv(X)
-    # X.cpu()
-    # w_global = X_inv.matmul(y)
-    # del X_inv
-    # X.to(DEVICE)
-    # w_global = torch.matmul(torch.matmul(torch.linalg.inv(torch.matmul(torch.transpose(X, 0, 1), X)), torch.transpose(X, 0, 1)), y)
+        w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
     
     end = time.time()
     LOG("Time for gradient ascent:", end-start)
-    pred = torch.matmul(X, w)
-    loss = torch.nn.functional.mse_loss(pred, y)
-    LOG('Training MSE:',loss)
-    LOG("Training R^2: ", R_squared(pred, y))
-    LOG("Training RSS: ", RSS(pred, y))
-    LOG("Training TSS: ", TSS(y))
+    
     return w
 
-def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
+def train_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
     start = time.time()
+
     X_squared = torch.matmul(torch.transpose(X, 0, 1), X)
     I_prime = torch.eye(X.shape[1], X.shape[1]).to(DEVICE)
     I_prime[0][0] = 0
@@ -66,6 +47,7 @@ def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
     del inv
     w_global = torch.matmul(first_part, y)
     del first_part
+
     end = time.time()
     LOG("Time for global optimization:", end-start)
     pred = torch.matmul(X, w_global)
@@ -76,29 +58,39 @@ def train_reg(X:torch.tensor, y:torch.tensor, lamb:float) -> torch.tensor:
     LOG("Training TSS: ", TSS(y))
     return w_global
 
-def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
+def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
+    X = torch.nn.functional.normalize(X)
+    X = torch.hstack((torch.ones(X.shape[0], 1).to(DEVICE), X))
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
+    w = torch.zeros(X.shape[1], y.shape[1], dtype=torch.float64).to(DEVICE)
     del X, y
     X_train = X_train.to(DEVICE)
     y_train = y_train.to(DEVICE)
-    X_train = torch.nn.functional.normalize(X_train)
-    X_train = torch.hstack((torch.ones(X_train.shape[0], 1).to(DEVICE), X_train))
     #send to train
     #del y_train
     #send to cuda
-    if lamb > 0:
-        w = train_reg(X_train, y_train, lamb)
-    else:
-        w = train(X_train, y_train)
-    LOG('output weights:',w)
-    LOG("weight shape: ", w.shape)
+    decoded_y_train = onehot_decoding(y_train)
+    for i in range(y_train.shape[1]):
+        if lamb > 0:
+            w[:, i] = train_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
+        else:
+            w[:, i] = train_one_vs_all(X_train, y_train[:, i, None], iter, lr).squeeze(1)
+
+    pred = classify(w, X_train)
+    LOG("Accuracy:", accuracy(pred, y_train))
     
+    decoded_pred = onehot_decoding(pred)
+
+    # LOG("Decoded pred: ", decoded_pred)
+    # LOG("Decoded y: ", decoded_y_train)
+    # LOG('output weights:',w)
+    # LOG("weight shape: ", w.shape)
+    
+    exit()
 
     X_test = X_test.to(DEVICE)
     y_test = y_test.to(DEVICE)
-    X_test = torch.nn.functional.normalize(X_test)
-    X_test = torch.hstack((torch.ones(X_test.shape[0], 1).to(DEVICE), X_test))
     
     test_pred = torch.matmul(X_test, w)
     test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
@@ -108,7 +100,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, lamb = 0) ->torch.tensor:
     LOG("TSS: ", TSS(y_test))
     return w
 
-def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
+def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=0)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
     del X, y
@@ -125,9 +117,9 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     #del y_train
     y_train = y_train.to(DEVICE)
     if lamb > 0:
-        w = train_reg(X_poly, y_train, lamb)
+        w = train_reg(X_poly, y_train, iter, lr, lamb)
     else:
-        w = train(X_poly, y_train)
+        w = train_one_vs_all(X_poly, y_train, iter, lr)
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
     del X_poly
@@ -147,7 +139,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, lamb=0)->torch.tensor:
     return w
 
 
-def main(poly:bool, reg:float) -> None:
+def main(poly:bool, reg:float, iter: int, lr: float) -> None:
     '''this is the entry of the program.
     {r}'''
     start = time.time()
@@ -159,10 +151,14 @@ def main(poly:bool, reg:float) -> None:
     X, y = splitXY(data, meta.names().index(TARGET))
     del data
     del meta
+
+    #encode y
+    y = onehot_encoding(y, DEVICE)
+
     if poly:
-        train_eval_poly(X, y, reg)
+        train_eval_poly(X, y, iter, lr, reg)
     else:
-        train_eval(X, y, reg)
+        train_eval(X, y, iter, lr, reg)
     
     
 
@@ -172,6 +168,8 @@ if __name__ == '__main__':
     parser.add_argument("--shared", action="store_true", default=False)
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--poly", action="store_true", default=False)
+    parser.add_argument("--iter", type=int, default=1000)
+    parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--reg", type=float, default=0)
     args = parser.parse_args()
     USE_PRUNE = not args.full
@@ -182,4 +180,4 @@ if __name__ == '__main__':
             DEVICE = "cuda"
         else:
             LOG("Cuda is not available, using CPU")
-    main(args.poly, args.reg)
+    main(args.poly, args.reg, args.iter, args.lr)

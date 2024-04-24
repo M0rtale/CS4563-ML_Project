@@ -16,7 +16,9 @@ def LOG(*args, **kwargs) -> None:
     '''simple debug print wrapper'''
     if DEBUG:
         print(*args)
-
+        
+def f_sigmoid(z: torch.tensor) -> torch.tensor:
+    return torch.sigmoid(z)
 
 def get_data(prune:bool, shared:bool) -> tuple[object, object]:
     '''gets the dataset from ../dataset/dataset.arff'''
@@ -92,3 +94,38 @@ def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)->tupl
     y_val = y[val_indices, :]
     return X_train, y_train, X_test, y_test, X_val, y_val
 
+
+def onehot_encoding(y:torch.tensor, device:str)->torch.tensor:
+    # Use binning to turn y from a continuous value into 59 discrete bins. 
+    new_y = torch.zeros((y.shape[0], 59), dtype=torch.float64).to(device)
+    y = y.squeeze(1)
+    # First 30 bins takes value in interval of 0.1
+    for i in range(0, 30):
+        condition = torch.logical_and(y>=i/10, y < (i+1)/10)
+        new_y[:, i] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
+    # Next 28 bins take internval of 1
+    for i in range(3,31):
+        condition = torch.logical_and(y>=i, y < (i+1))
+        new_y[:, i+27] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
+    # Last bin for every other value
+    condition = y >= 31
+    new_y[:, 58] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
+    return new_y
+
+def onehot_decoding(y:torch.tensor):
+    y_new = torch.argmax(y, dim=1).reshape(-1, 1).float()
+    y_new[y_new < 30] = y_new[y_new < 30] * 0.1
+    condition = torch.logical_and(y_new>=30, y_new < 58)
+    y_new[condition] -= 27
+    y_new[y_new == 58] = 31
+    return y_new
+
+def classify(w:torch.tensor, X:torch.tensor)->torch.tensor:
+    pred = f_sigmoid(torch.matmul(X, w))
+    y = torch.zeros_like(pred).scatter_(1, torch.argmax(pred, dim=1).unsqueeze(1), 1.)
+    return y
+
+def accuracy(pred:torch.tensor, y:torch.tensor)->float:
+    y = torch.argmax(y, dim=1).reshape(-1,1)
+    pred = torch.argmax(pred, dim=1).reshape(-1,1)
+    return float(torch.sum(pred==y)/y.shape[0])
