@@ -42,9 +42,9 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     #send to train
     #del y_train
     #send to cuda
-    start = time.time()
     for i in range(y_train.shape[1]):
         LOG("Start training model ", i)
+        start = time.time()
         if lamb > 0:
             w[:, i] = train_one_vs_all_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
         else:
