@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
 from sklearn.preprocessing import PolynomialFeatures
 
 import argparse
@@ -63,13 +62,11 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
         LOG("Time for training:", end-start)
     pred = classify(w, X_train)
     LOG("Training accuracy:", accuracy(pred, y_train))
-    
-    decoded_pred = onehot_decoding(pred)
 
     # LOG("Decoded pred: ", decoded_pred)
     # LOG("Decoded y: ", decoded_y_train)
     # LOG('output weights:',w)
-    # LOG("weight shape: ", w.shape)
+    LOG("weight shape: ", w.shape)
 
     X_test = X_test.to(DEVICE)
     y_test = y_test.to(DEVICE)
@@ -80,7 +77,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
 
 def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=0)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.4, 0.1)
     del X, y
 
     #send to train
@@ -95,25 +92,23 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     #del y_train
     y_train = y_train.to(DEVICE)
     if lamb > 0:
-        w = train_reg(X_poly, y_train, iter, lr, lamb)
+        w = train_one_vs_all_reg(X_poly, y_train, iter, lr, lamb)
     else:
         w = train_one_vs_all(X_poly, y_train, iter, lr)
-    LOG('output weights:',w)
+    # LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
+
+    pred = classify(w, X_poly)
+    LOG("Training accuracy:", accuracy(pred, y_train))
     del X_poly
     
-
     y_test = y_test.to(DEVICE)
     X_poly = poly.fit_transform(X_test.cpu())
     X_poly = torch.from_numpy(X_poly).to(DEVICE)
     X_poly = torch.nn.functional.normalize(X_poly)
     X_poly[:, 0] = 1
-    test_pred = torch.matmul(X_poly, w)
-    test_loss = torch.nn.functional.mse_loss(test_pred, y_test)
-    LOG('MSE:',test_loss)
-    LOG("R^2: ", R_squared(test_pred, y_test))
-    LOG("RSS: ", RSS(test_pred, y_test))
-    LOG("TSS: ", TSS(y_test))
+    test_pred = classify(w, X_poly)
+    LOG("Training accuracy:", accuracy(pred, y_test))
     return w
 
 
