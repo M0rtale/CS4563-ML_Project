@@ -63,8 +63,9 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     pred = classify(w, X_train)
     LOG("Training accuracy:", accuracy(pred, y_train))
 
-    # LOG("Decoded pred: ", decoded_pred)
-    # LOG("Decoded y: ", decoded_y_train)
+    decoded_pred = onehot_decoding(pred)
+    LOG("Decoded pred: ", decoded_pred[:10])
+    # LOG("Decoded y: ", decoded_y_train[])
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
 
@@ -96,7 +97,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     else:
         w = train_one_vs_all(X_poly, y_train, iter, lr)
     # LOG('output weights:',w)
-    LOG("weight shape: ", w.shape)
+    # LOG("weight shape: ", w.shape)
 
     pred = classify(w, X_poly)
     LOG("Training accuracy:", accuracy(pred, y_train))
