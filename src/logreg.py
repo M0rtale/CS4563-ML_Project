@@ -65,7 +65,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
 
     # LOG("Decoded pred: ", decoded_pred)
     # LOG("Decoded y: ", decoded_y_train)
-    # LOG('output weights:',w)
+    LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
 
     X_test = X_test.to(DEVICE)
