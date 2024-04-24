@@ -29,6 +29,15 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
     
     return w
 
+def train_one_vs_all_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
+    '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
+    
+    w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
+    for _ in range(iter):
+        #w = w + a * (XT (y - sigmoid(Xw)))
+        w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
+    return w
+
 def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
     X = X.cuda()
