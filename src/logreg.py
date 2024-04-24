@@ -20,7 +20,7 @@ FULL_SHAPE = (9199930,34)
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    
+    LOG("Encoded y: ", y[:10])
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
@@ -65,7 +65,6 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
 
     decoded_pred = onehot_decoding(pred)
     LOG("Decoded pred: ", decoded_pred[:10])
-    LOG("Encoded y: ", y_train[:10])
     LOG("Decoded y: ", onehot_decoding(y_train)[:10])
     LOG('output weights:',w)
     LOG("weight shape: ", w.shape)
