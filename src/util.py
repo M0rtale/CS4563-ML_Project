@@ -96,28 +96,28 @@ def splitData(X: torch.tensor, y:torch.tensor, train: float, test: float,)->tupl
 
 
 def onehot_encoding(y:torch.tensor, device:str)->torch.tensor:
-    # Use binning to turn y from a continuous value into 59 discrete bins. 
-    new_y = torch.zeros((y.shape[0], 59), dtype=torch.float64).to(device)
+    # Use binning to turn y from a continuous value into 31 discrete bins. 
+    new_y = torch.zeros((y.shape[0], 31), dtype=torch.float64).to(device)
     y = y.squeeze(1)
     # First 30 bins takes value in interval of 0.1
     for i in range(0, 30):
         condition = torch.logical_and(y>=i/10, y < (i+1)/10)
         new_y[:, i] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
-    # Next 28 bins take internval of 1
-    for i in range(3,31):
-        condition = torch.logical_and(y>=i, y < (i+1))
-        new_y[:, i+27] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
+    # # Next 28 bins take internval of 1
+    # for i in range(3,31):
+    #     condition = torch.logical_and(y>=i, y < (i+1))
+    #     new_y[:, i+27] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
     # Last bin for every other value
-    condition = y >= 31
-    new_y[:, 58] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
+    condition = y >= 3
+    new_y[:, 30] = torch.where(condition, torch.ones_like(condition), torch.zeros_like(condition))
     return new_y
 
 def onehot_decoding(y:torch.tensor):
     y_new = torch.argmax(y, dim=1).reshape(-1, 1).float()
     y_new[y_new < 30] = y_new[y_new < 30] * 0.1
-    condition = torch.logical_and(y_new>=30, y_new < 58)
-    y_new[condition] -= 27
-    y_new[y_new == 58] = 31
+    # condition = torch.logical_and(y_new>=30, y_new < 58)
+    # y_new[condition] -= 27
+    y_new[y_new == 30] = 3
     return y_new
 
 def classify(w:torch.tensor, X:torch.tensor)->torch.tensor:
