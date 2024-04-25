@@ -62,8 +62,16 @@ def train_one_vs_all_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, l
             # LOG("Ratio: ", ratio)
             # LOG("y_neg before: ", y_neg.shape)
             X_neg, y_neg, _, _, _, _ = splitData(X_neg, y_neg, ratio, 0)
+        difference = y_neg.shape[0] - y_pos.shape[0]
+        if difference > 0:
+            y_neg = y_neg[:-difference, :]
+            X_neg = X_neg[:-difference, :]
+        elif difference < 0:
+            y_pos = y_pos[:difference, :]
+            X_pos = X_pos[:difference, :]
         # LOG("y_pos: ", y_pos.shape)
         # LOG("y_neg after: ", y_neg.shape)
+        
         y = torch.vstack((y_pos, y_neg))
         X = torch.vstack((X_pos, X_neg))
     for _ in range(iter):
