@@ -42,8 +42,21 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
 
 def train_one_vs_all_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
-    
+    y_pos = y[y==1, None]
+    y_neg = y[y==0, None]
+    X_pos = X[y.squeeze()==1, :]
+    X_neg = X[y.squeeze()==0, :]
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
+    if y_pos.shape[0] > 0:
+        ratio = y_pos.shape[0] / y_neg.shape[0]
+        if ratio < 1:
+            # LOG("Ratio: ", ratio)
+            # LOG("y_neg before: ", y_neg.shape)
+            X_neg, y_neg, _, _, _, _ = splitData(X_neg, y_neg, ratio, 0)
+        # LOG("y_pos: ", y_pos.shape)
+        # LOG("y_neg after: ", y_neg.shape)
+        y = torch.vstack((y_pos, y_neg))
+        X = torch.vstack((X_pos, X_neg))
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
