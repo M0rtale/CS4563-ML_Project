@@ -133,7 +133,7 @@ def accuracy(pred:torch.tensor, y:torch.tensor)->float:
 
 def precision(confu: torch.tensor) -> torch.tensor:
     '''input is a confusion matrix, output is a list of precisions for each class'''
-    column_sums = torch.sum(confu, dim=0)
+    column_sums = torch.sum(confu, dim=0) + 0.00000001
     diagnol = torch.diag(confu)
     avg = diagnol / column_sums
     avg = avg.reshape(-1, 1)
@@ -141,7 +141,7 @@ def precision(confu: torch.tensor) -> torch.tensor:
 
 def recall(confu: torch.tensor) -> torch.tensor:
     '''input is a confusion matrix, output is a list of recall for each class'''
-    row_sums = torch.sum(confu, dim=1)
+    row_sums = torch.sum(confu, dim=1) + 0.00000001
     diagnol = torch.diag(confu)
     avg = diagnol / row_sums
     avg = avg.reshape(-1, 1)
@@ -158,7 +158,7 @@ def confusion(pred: torch.tensor, y:torch.tensor) -> torch.tensor:
 
 def f1_score(prec: torch.tensor, rec: torch.tensor) -> torch.tensor:
     'returns f1 of the prec rec'
-    return 2 * ((prec * rec) / (prec + rec))
+    return 2 * ((prec * rec) / (prec + rec + 0.00000001))
             
 
 
