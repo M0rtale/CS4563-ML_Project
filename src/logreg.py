@@ -20,7 +20,7 @@ USE_SHARED = False
 DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
-#LOG_FILE = f"../logs/training_{str(time.time())}.csv"
+TARGET = 2000000
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
@@ -59,9 +59,8 @@ def train_one_vs_all_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float) ->
     Kickstarts the traninig process of the dataset, assumes the data is normalized
     Both upsampling and downsampling is used.
     '''
-    target = 2000000
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
-    X, y = up_and_down(X, y, target)
+    X, y = up_and_down(X, y, TARGET)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
@@ -102,9 +101,9 @@ def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float
     Kickstarts the traninig process of the dataset using regularization, assumes the data is normalized
     Both upsampling and downsampling is used.
     '''
-    target = 2000000
+    
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
-    X, y = up_and_down(X, y, target)
+    X, y = up_and_down(X, y, TARGET)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
@@ -270,12 +269,13 @@ if __name__ == '__main__':
     parser.add_argument("--cpu", action="store_true", default=False)
     parser.add_argument("--poly", action="store_true", default=False)
     parser.add_argument("--iter", type=int, default=1000)
+    parser.add_argument("--target", type=int, default=2000000)
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--reg", type=float, default=0)
-    parser.add_argument("--name", type=str, default="case")
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
+    TARGET = args.target
 
     if not args.cpu:
         if torch.cuda.is_available():
