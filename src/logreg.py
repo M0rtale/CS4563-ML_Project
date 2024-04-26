@@ -158,14 +158,14 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     writer.writerows(f1.tolist())
     writer.writerow('')
     
-    print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
+    print("Training accuracy: {:0.2f}%".format(accuracy(pred, y_train)))
     print("Average training precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
     print("Average training recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
     print("Average training f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
 
     decoded_pred = onehot_decoding(pred)
-    LOG("Decoded pred: ", decoded_pred[:10])
-    LOG("Decoded y: ", onehot_decoding(y_train)[:10])
+    # LOG("Decoded pred: ", decoded_pred[:10])
+    # LOG("Decoded y: ", onehot_decoding(y_train)[:10])
     # LOG('output weights:',w)
     # LOG("weight shape: ", w.shape)
 
@@ -196,7 +196,7 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     
     #close file 
     file.close()
-    print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
+    print("Testing accuracy: {:0.2f}%".format(accuracy(test_pred, y_test)))
     print("Average testing precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
     print("Average testing recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
     print("Average testing f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
@@ -251,7 +251,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     writer.writerows(f1.tolist())
     writer.writerow('')
     
-    print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
+    print("Training accuracy: {:0.2f}%".format(accuracy(pred, y_train)))
     print("Average training precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
     print("Average training recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
     print("Average training f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
@@ -286,7 +286,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     writer.writerow('')
 
 
-    print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
+    print("Testing accuracy: {:0.2f}%".format(accuracy(test_pred, y_test)))
     print("Average testing precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
     print("Average testing recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
     print("Average testing f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
