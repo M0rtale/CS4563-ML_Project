@@ -4,7 +4,7 @@ from collections import defaultdict
 from math import floor
 
 data = ''
-with open("pruned.arff", "r") as h:
+with open("dataset.arff", "r") as h:
     data = h.read()
 
 flag = False
