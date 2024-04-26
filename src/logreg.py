@@ -17,6 +17,7 @@ USE_SHARED = False
 DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
+LOG_FILE = f"../logs/training_{str(time.time())}"
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''

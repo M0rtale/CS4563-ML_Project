@@ -131,6 +131,33 @@ def accuracy(pred:torch.tensor, y:torch.tensor)->float:
     pred = torch.argmax(pred, dim=1).reshape(-1,1)
     return float(torch.sum(pred==y)/y.shape[0])
 
+def precision(confu: torch.tensor) -> torch.tensor:
+    '''input is a confusion matrix, output is a list of precisions for each class'''
+    column_sums = torch.sum(confu, dim=0)
+    diagnol = torch.diag(confu)
+    avg = diagnol / column_sums
+    avg = avg.reshape(-1, 1)
+    return avg
+
+def recall(confu: torch.tensor) -> torch.tensor:
+    '''input is a confusion matrix, output is a list of recall for each class'''
+    row_sums = torch.sum(confu, dim=1)
+    diagnol = torch.diag(confu)
+    avg = diagnol / row_sums
+    avg = avg.reshape(-1, 1)
+    return avg
+
+def confusion(pred: torch.tensor, y:torch.tensor) -> torch.tensor:
+    """Create a confusion matrix, each column is predicted class, each row is actual class"""
+    matrix = torch.zeros((pred.shape[1], pred.shape[1]))
+    for i in range(pred.shape[1]):
+        actual = y[:, i] == 1
+        predicted = pred[actual, :]
+        matrix[i, :] = torch.sum(predicted, dim=0)
+    return matrix
+            
+
+
 def up_and_down(X:torch.tensor, y:torch.tensor, target:int) -> tuple[torch.tensor, torch.tensor]:
     y_pos = y[y==1, None]
     y_neg = y[y==0, None]
