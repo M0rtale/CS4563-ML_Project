@@ -33,6 +33,7 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
             X_neg, y_neg, _, _, _, _ = splitData(X_neg, y_neg, ratio, 0)
         if ratio > 1:
             X_pos, y_pos, _, _, _, _ = splitData(X_pos, y_pos, 1/ratio, 0)
+        # Sometimes example count differ by 1 due to rounding, and can influence model significantly when not many example is used.
         difference = y_neg.shape[0] - y_pos.shape[0]
         if difference > 0:
             y_neg = y_neg[:-difference, :]
@@ -44,6 +45,19 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
         LOG("y_neg after: ", y_neg.shape)
         y = torch.vstack((y_pos, y_neg))
         X = torch.vstack((X_pos, X_neg))
+    for _ in range(iter):
+        #w = w + a * (XT (y - sigmoid(Xw)))
+        w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
+    return w
+
+def train_one_vs_all_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
+    '''
+    Kickstarts the traninig process of the dataset, assumes the data is normalized
+    Both upsampling and downsampling is used.
+    '''
+    target = 2000000
+    w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
+    X, y = up_and_down(X, y, target)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
@@ -79,6 +93,20 @@ def train_one_vs_all_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, l
         w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
     return w
 
+def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
+    '''
+    Kickstarts the traninig process of the dataset using regularization, assumes the data is normalized
+    Both upsampling and downsampling is used.
+    '''
+    target = 2000000
+    w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
+    X, y = up_and_down(X, y, target)
+    for _ in range(iter):
+        #w = w + a * (XT (y - sigmoid(Xw)))
+        w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
+    return w
+
+
 def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
     X = X.cuda()
@@ -96,9 +124,9 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
         LOG("Start training model ", i)
         start = time.time()
         if lamb > 0:
-            w[:, i] = train_one_vs_all_reg(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
+            w[:, i] = train_one_vs_all_reg_up(X_train, y_train[:, i, None], iter, lr, lamb).squeeze(1)
         else:
-            w[:, i] = train_one_vs_all(X_train, y_train[:, i, None], iter, lr).squeeze(1)
+            w[:, i] = train_one_vs_all_up(X_train, y_train[:, i, None], iter, lr).squeeze(1)
         
         end = time.time()
         LOG("Time for training:", end-start)

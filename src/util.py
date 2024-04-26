@@ -1,7 +1,7 @@
 import torch
 from scipy.io import arff
 from random import shuffle
-from math import floor
+from math import floor, ceil
 import numpy as np
 from dataset import myDataset
 from multiprocessing import shared_memory
@@ -130,3 +130,30 @@ def accuracy(pred:torch.tensor, y:torch.tensor)->float:
     y = torch.argmax(y, dim=1).reshape(-1,1)
     pred = torch.argmax(pred, dim=1).reshape(-1,1)
     return float(torch.sum(pred==y)/y.shape[0])
+
+def up_and_down(X:torch.tensor, y:torch.tensor, target:int) -> tuple[torch.tensor, torch.tensor]:
+    y_pos = y[y==1, None]
+    y_neg = y[y==0, None]
+    X_pos = X[y.squeeze()==1, :]
+    X_neg = X[y.squeeze()==0, :]
+    if y_pos.shape[0] > 0:
+        if y_neg.shape[0] > target:
+            ratio = target / y_neg.shape[0]
+            X_neg, y_neg, _, _, _, _ = splitData(X_neg, y_neg, ratio, 0)
+        ratio = y_neg.shape[0] / y_pos.shape[0]
+        if ratio > 1:
+            y_pos = y_pos.repeat(ceil(ratio), 1)
+            X_pos = X_pos.repeat(ceil(ratio), 1)
+        elif ratio < 1:
+            X_pos, y_pos, _, _, _, _ = splitData(X_pos, y_pos, ratio, 0)
+        if y_pos.shape[0] > y_neg.shape[0]:
+            y_pos = y_pos[:y_neg.shape[0], :]
+            X_pos = X_pos[:y_neg.shape[0], :]
+        elif y_pos.shape[0] < y_neg.shape[0]:
+            X_neg = X_neg[:y_pos.shape[0], :]
+            y_neg = y_neg[:y_pos.shape[0], :]
+        LOG("y_pos: ", y_pos.shape)
+        LOG("y_neg after: ", y_neg.shape)
+        y = torch.vstack((y_pos, y_neg))
+        X = torch.vstack((X_pos, X_neg))
+    return X, y
