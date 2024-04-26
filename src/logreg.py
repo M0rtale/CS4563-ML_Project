@@ -20,7 +20,7 @@ USE_SHARED = False
 DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
-TARGET = 2000000
+TARGET_SIZE = 2000000
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
@@ -60,7 +60,7 @@ def train_one_vs_all_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float) ->
     Both upsampling and downsampling is used.
     '''
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
-    X, y = up_and_down(X, y, TARGET)
+    X, y = up_and_down(X, y, TARGET_SIZE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
@@ -103,7 +103,7 @@ def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float
     '''
     
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
-    X, y = up_and_down(X, y, TARGET)
+    X, y = up_and_down(X, y, TARGET_SIZE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
         w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
@@ -159,9 +159,9 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     writer.writerow('')
     
     print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
-    print("Average training precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
-    print("Average training recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
-    print("Average training f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+    print("Average training precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
+    print("Average training recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
+    print("Average training f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
 
     decoded_pred = onehot_decoding(pred)
     LOG("Decoded pred: ", decoded_pred[:10])
@@ -196,11 +196,10 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     
     #close file 
     file.close()
-
     print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
-    print("Average testing precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
-    print("Average testing recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
-    print("Average testing f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+    print("Average testing precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
+    print("Average testing recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
+    print("Average testing f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
     
     return w
 
@@ -253,9 +252,9 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     writer.writerow('')
     
     print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
-    print("Average training precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
-    print("Average training recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
-    print("Average training f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+    print("Average training precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
+    print("Average training recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
+    print("Average training f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
     
     del X_poly
     
@@ -288,9 +287,9 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
 
 
     print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
-    print("Average testing precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
-    print("Average testing recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
-    print("Average testing f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+    print("Average testing precision: {:0.2f}".format(float(torch.sum(prec)/prec.shape[0])))
+    print("Average testing recall: {:0.2f}".format(float(torch.sum(rec)/prec.shape[0])))
+    print("Average testing f1: {:0.2f}".format(float(torch.sum(f1)/prec.shape[0])))
     return w
 
 
@@ -330,7 +329,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
-    TARGET = args.target
+    TARGET_SIZE = args.target
 
     if not args.cpu:
         if torch.cuda.is_available():
