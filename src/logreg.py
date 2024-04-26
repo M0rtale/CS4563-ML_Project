@@ -135,8 +135,6 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
         end = time.time()
         LOG("Time for training:", end-start)
     pred = classify(w, X_train)
-    print("Training accuracy:", accuracy(pred, y_train))
-
     
     filename = f"../metrics/iter={iter}_lr={lr}_lambda={lamb}.csv"
     filename = os.path.abspath(os.path.join(CURRENT_DIRECTORY, filename))
@@ -160,6 +158,11 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     writer.writerows(f1.tolist())
     writer.writerow('')
     
+    print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
+    print("Average training precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
+    print("Average training recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
+    print("Average training f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+
     decoded_pred = onehot_decoding(pred)
     LOG("Decoded pred: ", decoded_pred[:10])
     LOG("Decoded y: ", onehot_decoding(y_train)[:10])
@@ -170,9 +173,6 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     y_test = y_test.to(DEVICE)
     
     test_pred = classify(w, X_test)
-    print("Testing accuracy:", accuracy(test_pred, y_test))
-
-    
 
     conf = confusion(test_pred, y_test)
     rec = recall(conf)
@@ -196,6 +196,11 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     
     #close file 
     file.close()
+
+    print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
+    print("Average testing precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
+    print("Average testing recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
+    print("Average testing f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
     
     return w
 
@@ -224,9 +229,34 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     # LOG('output weights:',w)
     # LOG("weight shape: ", w.shape)
     filename = f"../metrics/iter={iter}_lr={lr}_lambda={lamb}_poly.csv"
+    filename = os.path.abspath(os.path.join(CURRENT_DIRECTORY, filename))
 
     pred = classify(w, X_poly)
-    print("Training accuracy:", accuracy(pred, y_train))
+    conf = confusion(pred, y_train)
+    rec = recall(conf)
+    prec = precision(conf)
+    f1 = f1_score(prec, rec)
+    file = open(filename, "w")
+    writer = csv.writer(file)
+    writer.writerow(["Training Confusion Matrix"])
+    writer.writerow(["Each column is predicted class, each row is actual class"])
+    writer.writerows(conf.tolist())
+    writer.writerow('')
+    writer.writerow("Precision for each class. Each row is one class")
+    writer.writerows(prec.tolist())
+    writer.writerow('')
+    writer.writerow("Recall for each class. Each row is one class")
+    writer.writerows(rec.tolist())
+    writer.writerow('')
+    writer.writerow("F1 score for each class. Each row is one class")
+    writer.writerows(f1.tolist())
+    writer.writerow('')
+    
+    print("Training accuracy: {:0.2f}".format(accuracy(pred, y_train)))
+    print("Average training precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
+    print("Average training recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
+    print("Average training f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
+    
     del X_poly
     
     y_test = y_test.to(DEVICE)
@@ -235,7 +265,32 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     X_poly = torch.nn.functional.normalize(X_poly)
     X_poly[:, 0] = 1
     test_pred = classify(w, X_poly)
-    print("Training accuracy:", accuracy(pred, y_test))
+
+    conf = confusion(test_pred, y_test)
+    rec = recall(conf)
+    prec = precision(conf)
+    f1 = f1_score(prec, rec)
+    for i in range(5):
+        writer.writerow('')
+    writer.writerow(["Testing Confusion Matrix"])
+    writer.writerow(["Each column is predicted class, each row is actual class"])
+    writer.writerows(conf.tolist())
+    writer.writerow('')
+    writer.writerow("Precision for each class. Each row is one class")
+    writer.writerows(prec.tolist())
+    writer.writerow('')
+    writer.writerow("Recall for each class. Each row is one class")
+    writer.writerows(rec.tolist())
+    writer.writerow('')
+    writer.writerow("F1 score for each class. Each row is one class")
+    writer.writerows(f1.tolist())
+    writer.writerow('')
+
+
+    print("Testing accuracy: {:0.2f}".format(accuracy(test_pred, y_test)))
+    print("Average testing precision: {:0.2f}".format(torch.sum(prec)/prec.shape[0]))
+    print("Average testing recall: {:0.2f}".format(torch.sum(rec)/prec.shape[0]))
+    print("Average testing f1: {:0.2f}".format(torch.sum(f1)/prec.shape[0]))
     return w
 
 
