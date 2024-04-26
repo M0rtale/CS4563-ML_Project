@@ -8,16 +8,19 @@ import time
 from dataset import myDataset
 from multiprocessing import shared_memory
 from multiprocessing.resource_tracker import unregister
+import csv
 
 from util import *
+import os
 
+CURRENT_DIRECTORY = os.getcwd()
 TARGET = "MM256"
 USE_PRUNE = False
 USE_SHARED = False
 DEVICE = 'cpu'
 PRUNED_SHAPE = (1000,34)
 FULL_SHAPE = (9199930,34)
-LOG_FILE = f"../logs/training_{str(time.time())}"
+#LOG_FILE = f"../logs/training_{str(time.time())}.csv"
 
 def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''Kickstarts the traninig process of the dataset, assumes the data is normalized'''
@@ -110,7 +113,8 @@ def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float
 
 def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) ->torch.tensor:
     # Train and evalute linear regression model
-    X = X.cuda()
+    X = X.to(DEVICE)
+    y = y.to(DEVICE)
     X = torch.nn.functional.normalize(X)
     X = torch.hstack((torch.ones(X.shape[0], 1).to(DEVICE), X))
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.2)
@@ -134,6 +138,29 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     pred = classify(w, X_train)
     print("Training accuracy:", accuracy(pred, y_train))
 
+    
+    filename = f"../metrics/iter={iter}_lr={lr}_lambda={lamb}.csv"
+    filename = os.path.abspath(os.path.join(CURRENT_DIRECTORY, filename))
+    conf = confusion(pred, y_train)
+    rec = recall(conf)
+    prec = precision(conf)
+    f1 = f1_score(prec, rec)
+    file = open(filename, "w")
+    writer = csv.writer(file)
+    writer.writerow(["Training Confusion Matrix"])
+    writer.writerow(["Each column is predicted class, each row is actual class"])
+    writer.writerows(conf.tolist())
+    writer.writerow('')
+    writer.writerow("Precision for each class. Each row is one class")
+    writer.writerows(prec.tolist())
+    writer.writerow('')
+    writer.writerow("Recall for each class. Each row is one class")
+    writer.writerows(rec.tolist())
+    writer.writerow('')
+    writer.writerow("F1 score for each class. Each row is one class")
+    writer.writerows(f1.tolist())
+    writer.writerow('')
+    
     decoded_pred = onehot_decoding(pred)
     LOG("Decoded pred: ", decoded_pred[:10])
     LOG("Decoded y: ", onehot_decoding(y_train)[:10])
@@ -145,10 +172,38 @@ def train_eval(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb = 0) 
     
     test_pred = classify(w, X_test)
     print("Testing accuracy:", accuracy(test_pred, y_test))
+
+    
+
+    conf = confusion(test_pred, y_test)
+    rec = recall(conf)
+    prec = precision(conf)
+    f1 = f1_score(prec, rec)
+    for i in range(5):
+        writer.writerow('')
+    writer.writerow(["Testing Confusion Matrix"])
+    writer.writerow(["Each column is predicted class, each row is actual class"])
+    writer.writerows(conf.tolist())
+    writer.writerow('')
+    writer.writerow("Precision for each class. Each row is one class")
+    writer.writerows(prec.tolist())
+    writer.writerow('')
+    writer.writerow("Recall for each class. Each row is one class")
+    writer.writerows(rec.tolist())
+    writer.writerow('')
+    writer.writerow("F1 score for each class. Each row is one class")
+    writer.writerows(f1.tolist())
+    writer.writerow('')
+    
+    #close file 
+    file.close()
+    
     return w
 
 def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=0)->torch.tensor:
     # Train and evaluate linear regression model with polynomial transformation of degree 2
+    X = X.to(DEVICE)
+    y = y.to(DEVICE)
     X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.4, 0.1)
     del X, y
 
@@ -169,6 +224,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
         w = train_one_vs_all(X_poly, y_train, iter, lr)
     # LOG('output weights:',w)
     # LOG("weight shape: ", w.shape)
+    filename = f"../metrics/iter={iter}_lr={lr}_lambda={lamb}_poly.csv"
 
     pred = classify(w, X_poly)
     print("Training accuracy:", accuracy(pred, y_train))
@@ -216,9 +272,11 @@ if __name__ == '__main__':
     parser.add_argument("--iter", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--reg", type=float, default=0)
+    parser.add_argument("--name", type=str, default="case")
     args = parser.parse_args()
     USE_PRUNE = not args.full
     USE_SHARED = args.shared
+
     if not args.cpu:
         if torch.cuda.is_available():
             LOG("Cuda is available, switching to cuda")

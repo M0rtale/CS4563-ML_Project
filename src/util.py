@@ -155,6 +155,10 @@ def confusion(pred: torch.tensor, y:torch.tensor) -> torch.tensor:
         predicted = pred[actual, :]
         matrix[i, :] = torch.sum(predicted, dim=0)
     return matrix
+
+def f1_score(prec: torch.tensor, rec: torch.tensor) -> torch.tensor:
+    'returns f1 of the prec rec'
+    return 2 * ((prec * rec) / (prec + rec))
             
 
 
