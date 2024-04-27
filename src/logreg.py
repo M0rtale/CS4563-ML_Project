@@ -207,7 +207,7 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     # Train and evaluate linear regression model with polynomial transformation of degree 2
     X = X.to(DEVICE)
     y = y.to(DEVICE)
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.4, 0.1)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.2, 0.1)
     del X, y
 
     #send to train
@@ -221,10 +221,17 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     del X_train
     #del y_train
     y_train = y_train.to(DEVICE)
-    if lamb > 0:
-        w = train_one_vs_all_reg_up(X_poly, y_train, iter, lr, lamb)
-    else:
-        w = train_one_vs_all_up(X_poly, y_train, iter, lr)
+    w = torch.zeros(X_poly.shape[1], y_train.shape[1], dtype=torch.float64).to(DEVICE)
+    for i in range(y_train.shape[1]):
+        LOG("Start training model ", i)
+        start = time.time()
+        if lamb > 0:
+            w[:, i] = train_one_vs_all_reg_up(X_poly, y_train[:, i, None], iter, lr, lamb).squeeze(1)
+        else:
+            w[:, i] = train_one_vs_all_up(X_poly, y_train[:, i, None], iter, lr).squeeze(1)
+        
+        end = time.time()
+        LOG("Time for training:", end-start)
     # LOG('output weights:',w)
     # LOG("weight shape: ", w.shape)
     filename = f"../metrics/iter={iter}_lr={lr}_lambda={lamb}_poly.csv"
