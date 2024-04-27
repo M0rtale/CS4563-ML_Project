@@ -54,17 +54,12 @@ def train_one_vs_all(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> to
         w = w + lr * ( torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0]
     return w
 
-def train_one_vs_all_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float, poly=False) -> torch.tensor:
+def train_one_vs_all_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float) -> torch.tensor:
     '''
     Kickstarts the traninig process of the dataset, assumes the data is normalized
     Both upsampling and downsampling is used.
     '''
     X, y = up_and_down(X, y, TARGET_SIZE)
-    if poly:
-        X = poly.fit_transform(X.cpu())
-        X = torch.from_numpy(X).to(DEVICE)
-        X = torch.nn.functional.normalize(X)
-        X[:, 0] = 1
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
@@ -101,17 +96,12 @@ def train_one_vs_all_reg(X:torch.tensor, y:torch.tensor, iter: int, lr: float, l
         w = w + lr * ((torch.matmul( torch.transpose(X, 0, 1), (y - f_sigmoid(torch.matmul(X, w))) )) / X.shape[0] - lamb * w)
     return w
 
-def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float, poly=False) -> torch.tensor:
+def train_one_vs_all_reg_up(X:torch.tensor, y:torch.tensor, iter: int, lr: float, lamb:float) -> torch.tensor:
     '''
     Kickstarts the traninig process of the dataset using regularization, assumes the data is normalized
     Both upsampling and downsampling is used.
     '''
     X, y = up_and_down(X, y, TARGET_SIZE)
-    if poly:
-        X = poly.fit_transform(X.cpu())
-        X = torch.from_numpy(X).to(DEVICE)
-        X = torch.nn.functional.normalize(X)
-        X[:, 0] = 1
     w = torch.zeros((X.shape[1], 1), dtype=torch.float64).to(DEVICE)
     for _ in range(iter):
         #w = w + a * (XT (y - sigmoid(Xw)))
@@ -216,23 +206,30 @@ def train_eval_poly(X: torch.tensor, y:torch.tensor, iter: int, lr: float, lamb=
     # Train and evaluate linear regression model with polynomial transformation of degree 2
     X = X.to(DEVICE)
     y = y.to(DEVICE)
-    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.8, 0.1)
-    w = torch.zeros((X.shape[1] * (X.shape[1]+3)+1), y_train.shape[1], dtype=torch.float64).to(DEVICE)
+    X_train, y_train, X_test, y_test, _, _ = splitData(X, y, 0.15, 0.1)
     del X, y
     X_test.cpu()
     y_test.cpu()
 
     #send to train
     poly = PolynomialFeatures(2)
+    X_poly = poly.fit_transform(X_train.cpu())
+    X_poly = torch.from_numpy(X_poly).to(DEVICE)
+    X_poly = torch.nn.functional.normalize(X_poly)
+    X_poly[:, 0] = 1
     
-
+    print("X poly shape", X_poly.shape)
+    del X_train
+    #del y_train
+    y_train = y_train.to(DEVICE)
+    w = torch.zeros(X_poly.shape[1], y_train.shape[1], dtype=torch.float64).to(DEVICE)
     for i in range(y_train.shape[1]):
         LOG("Start training model ", i)
         start = time.time()
         if lamb > 0:
-            w[:, i] = train_one_vs_all_reg_up(X_train, y_train[:, i, None], iter, lr, lamb, poly=poly).squeeze(1)
+            w[:, i] = train_one_vs_all_reg_up(X_poly, y_train[:, i, None], iter, lr, lamb).squeeze(1)
         else:
-            w[:, i] = train_one_vs_all_up(X_train, y_train[:, i, None], iter, lr, poly=poly).squeeze(1)
+            w[:, i] = train_one_vs_all_up(X_poly, y_train[:, i, None], iter, lr).squeeze(1)
         
         end = time.time()
         LOG("Time for training:", end-start)
