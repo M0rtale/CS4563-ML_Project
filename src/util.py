@@ -167,6 +167,7 @@ def up_and_down(X:torch.tensor, y:torch.tensor, target:int) -> tuple[torch.tenso
     y_neg = y[y==0, None]
     X_pos = X[y.squeeze()==1, :]
     X_neg = X[y.squeeze()==0, :]
+    del X, y
     if y_pos.shape[0] > 0:
         if y_neg.shape[0] > target:
             ratio = target / y_neg.shape[0]
